@@ -1,0 +1,25 @@
+name: smoke
+
+# The server is a thin client over the public LienDeadline API. If a response shape
+# changes upstream, this breaks silently and users hit errors before we hear about it.
+# Run the real end-to-end check daily against the live API, not just on push.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run build
+      - name: Call every tool over stdio against the live API
+        run: npm run smoke
