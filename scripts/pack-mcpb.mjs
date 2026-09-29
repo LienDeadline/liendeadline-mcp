@@ -13,7 +13,7 @@ const stage = join(outDir, "stage");
 
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
-for (const file of ["package.json", "package-lock.json", "LICENSE", "README.md"]) {
+for (const file of ["package.json", "npm-shrinkwrap.json", "LICENSE", "README.md"]) {
   cpSync(join(root, file), join(stage, file));
 }
 cpSync(join(root, "dist"), join(stage, "dist"), { recursive: true });

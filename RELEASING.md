@@ -36,6 +36,10 @@ Each step skips a target that already has the version, so a failed run can be re
 
 Registry versions and metadata are immutable; fix a bad release with a new version.
 
+`npm-shrinkwrap.json` is published with the package and locks every transitive dependency for
+`npx` users, so a dependency update, including a security fix, reaches users only through a new
+release. `npm ci` installs from the same file.
+
 ## One-time setup
 
 1. **First npm publish.** npm can only trust a workflow for a package that already exists,

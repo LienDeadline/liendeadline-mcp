@@ -1,6 +1,6 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP server for US mechanics lien and preliminary notice deadlines. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and statute-cited lien guides for all 50 states plus DC.",
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "main": "dist/index.js",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "npm-shrinkwrap.json"
   ],
   "engines": {
     "node": ">=22.5"

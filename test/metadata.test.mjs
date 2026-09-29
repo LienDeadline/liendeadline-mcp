@@ -43,3 +43,14 @@ test('the customer key is optional and marked secret wherever it is declared', (
   assert.equal(key.isSecret, true);
   assert.equal(key.isRequired, false);
 });
+
+test('the published package locks its dependency tree with npm-shrinkwrap.json', () => {
+  // npx honors a published shrinkwrap; pinning only the top-level version would not lock transitive deps.
+  const shrinkwrap = read('npm-shrinkwrap.json');
+  assert.ok(pkg.files.includes('npm-shrinkwrap.json'));
+  assert.equal(shrinkwrap.version, pkg.version);
+  assert.equal(shrinkwrap.packages[''].version, pkg.version);
+  for (const dep of Object.keys(pkg.dependencies)) {
+    assert.ok(shrinkwrap.packages[`node_modules/${dep}`]?.version, `${dep} is locked`);
+  }
+});
