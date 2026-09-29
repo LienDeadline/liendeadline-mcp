@@ -1,5 +1,5 @@
 {
-  "serverInfo": { "name": "LienDeadline", "version": "0.3.0" },
+  "serverInfo": { "name": "LienDeadline", "version": "0.3.1" },
   "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and editorial state lien guides with statute citations for all 50 states plus DC.",
   "capabilities": { "tools": true },
   "tools": [

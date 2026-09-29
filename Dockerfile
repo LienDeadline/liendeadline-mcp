@@ -1,7 +1,7 @@
 # Builds the stdio server for container-based MCP directories and clients.
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json tsconfig.json ./
+COPY package.json npm-shrinkwrap.json tsconfig.json ./
 RUN npm ci --ignore-scripts
 COPY src ./src
 RUN npm run build && npm prune --omit=dev

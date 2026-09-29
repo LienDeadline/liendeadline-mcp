@@ -33,7 +33,8 @@ Every tool is read-only: none of them sends notices, files liens or makes paymen
 
 ## Install
 
-Requires Node.js 22 or newer. The server runs locally over stdio. It is listed in the
+Requires Node.js 22 or newer. The server runs locally over stdio. The package ships
+`npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io) as
 `io.github.LienDeadline/liendeadline-mcp`.
 
