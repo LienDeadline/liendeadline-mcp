@@ -21,7 +21,9 @@ export class Client {
   async callTool({name, arguments: args}) {
     if (args.state === 'ZZ') return {isError: true, content: [{text: 'Unsupported state'}]};
     if (process.env.MCP_TEST_STATUS) return {isError: true, content: [{text: process.env.LIENDEADLINE_API_KEY}]};
-    const body = name === 'list_supported_states' ? {count: 2, states: ['TX', 'CA']}
+    const body = name === 'calculate_supplier_deadlines'
+      ? {status: 'calculated', preliminary_notice: {deadline: '2026-09-17'}, lien_filing: {deadline: '2026-12-09'}}
+      : name === 'list_supported_states' ? {count: 2, states: ['TX', 'CA']}
       : name === 'get_state_lien_guide' ? {rules: {preliminary_notice: {statute: 'Synthetic statute'}}, source_url: 'https://liendeadline.com/state-lien-guides/texas'}
       : {state: 'TX', invoice_date: '2026-07-01', lien_deadline: '2026-10-15'};
     return {content: [{text: JSON.stringify(body)}]};

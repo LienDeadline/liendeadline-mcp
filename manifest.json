@@ -1,0 +1,46 @@
+{
+  "manifest_version": "0.3",
+  "name": "liendeadline",
+  "display_name": "LienDeadline",
+  "version": "0.2.0",
+  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers.",
+  "long_description": "Calculates a material supplier's preliminary notice and lien filing baselines from delivery dates with LienDeadline's public API, and returns editorial state lien guides with statute citations for all 50 states plus DC. Reviewed date baselines cover Florida and Kansas private projects; other cases return review_required with the reason. The supplier calculation and guides need no key. Not legal advice.",
+  "author": { "name": "LienDeadline", "url": "https://liendeadline.com" },
+  "homepage": "https://liendeadline.com",
+  "documentation": "https://github.com/LienDeadline/liendeadline-mcp#readme",
+  "support": "https://github.com/LienDeadline/liendeadline-mcp/issues",
+  "repository": { "type": "git", "url": "https://github.com/LienDeadline/liendeadline-mcp" },
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": { "LIENDEADLINE_API_KEY": "${user_config.api_key}" }
+    }
+  },
+  "tools": [
+    { "name": "calculate_supplier_deadlines", "description": "Supplier notice and lien filing baselines from delivery events. Public, no key." },
+    { "name": "get_state_lien_guide", "description": "Editorial lien guide for one state, with statute citations. Public, no key." },
+    { "name": "list_state_lien_guides", "description": "Every available state guide by code and title. Public, no key." },
+    { "name": "calculate_lien_deadline", "description": "Customer API: deadlines for one invoice. Needs the customer API key." },
+    { "name": "list_supported_states", "description": "Customer API: jurisdictions the invoice calculation accepts. Needs the customer API key." }
+  ],
+  "keywords": ["mechanics lien", "preliminary notice", "notice to owner", "construction", "supplier", "deadlines"],
+  "license": "MIT",
+  "privacy_policies": ["https://liendeadline.com/privacy"],
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Customer API key (optional)",
+      "description": "Only needed for the customer invoice tools. Leave empty to use the public supplier calculation and state guides.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=22.5.0" }
+  }
+}
