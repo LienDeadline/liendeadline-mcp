@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -25,12 +26,29 @@ async function withClient(env, run) {
   }
 }
 const text = result => result.content.map(c => c.text ?? '').join('');
+const SUPPLIER_ARGS = {
+  state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
+  project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,
+};
 
 test('actual stdio tools use customer key only for protected HTTP calls', async () => {
   await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 4);
+    assert.deepEqual(tools.map(t => t.name), [
+      'calculate_supplier_deadlines', 'calculate_lien_deadline', 'list_supported_states',
+      'get_state_lien_guide', 'list_state_lien_guides',
+    ]);
+    for (const tool of tools) {
+      assert.equal(tool.annotations?.readOnlyHint, true);
+      assert.equal(tool.annotations?.destructiveHint, false);
+    }
+    // Directory manifests declare the tool list statically; keep them identical to the server.
+    for (const manifest of ['manifest.json', 'well-known/mcp.json']) {
+      const declared = JSON.parse(readFileSync(new URL(`../${manifest}`, import.meta.url), 'utf8')).tools.map(t => t.name);
+      assert.deepEqual([...declared].sort(), tools.map(t => t.name).sort(), manifest);
+    }
     for (const [name, args] of [
+      ['calculate_supplier_deadlines', SUPPLIER_ARGS],
       ['calculate_lien_deadline', { state: 'TX', invoice_date: '2026-07-01' }],
       ['list_supported_states', {}], ['get_state_lien_guide', { state: 'TX' }], ['list_state_lien_guides', {}],
     ]) {
@@ -51,6 +69,25 @@ test('missing runtime key returns actionable MCP errors while guide tools work',
     }
     const guide = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX' } });
     assert.notEqual(guide.isError, true);
+  });
+});
+
+test('public supplier tool works without a key and returns the verified echo', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+    const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
+    assert.notEqual(result.isError, true);
+    const body = JSON.parse(text(result));
+    assert.equal(body.contract_version, 'supplier-events-v1');
+    assert.deepEqual(body.inputs, { contract_version: 'supplier-events-v1', ...SUPPLIER_ARGS });
+  });
+});
+
+test('supplier tool returns an actionable MCP error for contradictory facts', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+    const { last_delivery_date, ...rest } = SUPPLIER_ARGS;
+    const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: rest });
+    assert.equal(result.isError, true);
+    assert.match(text(result), /last_delivery_date is required when deliveries_complete is true/);
   });
 });
 
@@ -86,3 +123,15 @@ for (const deny of [false, true]) {
     assert.match(deny ? result.stderr : result.stdout, deny ? /Live smoke tool failed/ : /OK/);
   });
 }
+
+test('live smoke without a key runs public tools only and never forwards a key', () => {
+  const result = spawnSync(process.execPath, ['--experimental-transform-types', '--import', fileURLToPath(new URL('./mock-smoke.mjs', import.meta.url)), fileURLToPath(new URL('../src/smoke.ts', import.meta.url))], {
+    env: { LIENDEADLINE_API_URL: 'https://secure-api-v1.liendeadline.com', LIENDEADLINE_RUN_LIVE_SMOKE: '1' },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /calculate_supplier_deadlines FL/);
+  assert.match(result.stdout, /customer tools skipped/);
+  assert.doesNotMatch(result.stdout, /calculate_lien_deadline TX/);
+  assert.match(result.stdout, /OK/);
+});

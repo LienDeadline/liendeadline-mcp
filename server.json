@@ -1,0 +1,40 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.LienDeadline/liendeadline-mcp",
+  "title": "LienDeadline",
+  "description": "US mechanics lien and preliminary notice deadlines for construction suppliers, with statute sources.",
+  "websiteUrl": "https://liendeadline.com",
+  "repository": {
+    "url": "https://github.com/LienDeadline/liendeadline-mcp",
+    "source": "github"
+  },
+  "icons": [
+    {
+      "src": "https://liendeadline.com/android-chrome-512x512.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
+    }
+  ],
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "liendeadline-mcp",
+      "version": "0.2.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LIENDEADLINE_API_KEY",
+          "description": "Optional dedicated customer key for the customer invoice tools; the supplier calculation and state guides need no key.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

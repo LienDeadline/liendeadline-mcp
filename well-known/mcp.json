@@ -1,12 +1,13 @@
 {
-  "serverInfo": { "name": "LienDeadline", "version": "0.1.0" },
-  "description": "US mechanics lien and preliminary notice deadlines for all 50 states plus DC. Calculates statutory deadlines from an invoice date and exposes the underlying state rules with statute citations.",
+  "serverInfo": { "name": "LienDeadline", "version": "0.2.0" },
+  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and editorial state lien guides with statute citations for all 50 states plus DC.",
   "capabilities": { "tools": true },
   "tools": [
-    { "name": "calculate_lien_deadline", "description": "Preliminary notice and lien filing deadlines from an invoice date and US state." },
-    { "name": "list_supported_states", "description": "The 51 US jurisdictions with deadline rules available." },
-    { "name": "get_state_lien_guide", "description": "Underlying deadline rule for one state, including its statute citation." },
-    { "name": "list_state_lien_guides", "description": "Every available state guide by code and title." }
+    { "name": "calculate_supplier_deadlines", "description": "Supplier notice and lien filing baselines from delivery events. Public, no key." },
+    { "name": "get_state_lien_guide", "description": "Editorial guide for one state, including statute citations. Public, no key." },
+    { "name": "list_state_lien_guides", "description": "Every available state guide by code and title. Public, no key." },
+    { "name": "calculate_lien_deadline", "description": "Customer API: deadlines for one invoice. Requires LIENDEADLINE_API_KEY." },
+    { "name": "list_supported_states", "description": "Customer API: jurisdictions the invoice calculation accepts. Requires LIENDEADLINE_API_KEY." }
   ],
   "packages": [{ "registry": "npm", "identifier": "liendeadline-mcp", "transport": "stdio" }],
   "documentation": "https://liendeadline.com/api",

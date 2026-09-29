@@ -5,7 +5,9 @@ import { z } from "zod";
 import {
   DEFAULT_BASE_URL,
   LienDeadlineApiError,
+  VERSION,
   calculateDeadline,
+  calculateSupplierDeadlines,
   getStateGuide,
   listStateGuides,
   listSupportedStates,
@@ -36,32 +38,114 @@ const DISCLAIMER =
   "Calculated estimate from published state rules, reviewed quarterly. Not legal advice. " +
   "Statutes change and facts vary between projects. Verify critical deadlines with counsel.";
 
+const GUIDE_DISCLAIMER =
+  "Editorial guide, not legal advice. Statutes change and facts vary between projects. " +
+  "Verify critical deadlines with counsel.";
+
+const GUIDE_NOTE =
+  "Editorial reference, not a calculation. Do not derive filing dates from the day counts; " +
+  "use calculate_supplier_deadlines, and treat anything it does not calculate as requiring qualified review.";
+
+// Every tool only calculates or reads; none sends notices, files liens or makes payments.
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 export function buildServer(): McpServer {
   const server = new McpServer(
     {
       name: "liendeadline",
       title: "LienDeadline",
-      version: "0.1.0",
+      version: VERSION,
     },
     {
       instructions:
-        "US mechanics lien and preliminary notice deadlines for all 50 states plus DC. " +
-        "Give calculate_lien_deadline an invoice or delivery date and a two-letter state code " +
-        "to get the preliminary notice and lien filing deadlines. Use get_state_lien_guide when " +
-        "you need the underlying rule and its statute citation rather than a date. " +
-        "Results are calculated estimates, not legal advice.",
+        "US mechanics lien and preliminary notice deadlines for construction material suppliers. " +
+        "calculate_supplier_deadlines is public and needs no key: give it the project state, first " +
+        "delivery date, final delivery date when deliveries are complete, project type and who hired " +
+        "the supplier. Reviewed date baselines cover Florida and Kansas private projects; every other " +
+        "case returns review_required, which is an answer, not a failure. Ask for missing facts rather " +
+        "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
+        "and list_state_lien_guides return editorial guides with statute citations for all 50 states " +
+        "plus DC. calculate_lien_deadline and list_supported_states are customer API tools that need " +
+        "LIENDEADLINE_API_KEY. Results are calculated baselines, not legal advice.",
+    },
+  );
+
+  server.registerTool(
+    "calculate_supplier_deadlines",
+    {
+      title: "Calculate supplier notice and lien deadlines",
+      description:
+        "Public, stateless calculation of a material supplier's preliminary notice and lien filing " +
+        "baselines from delivery events (supplier-events-v1). Reviewed baselines exist for Florida and " +
+        "Kansas private projects; other states, public projects and unreviewed special events return " +
+        "status review_required with the reason. Ongoing deliveries return awaiting_final_delivery for " +
+        "the lien date. Each date carries its own status, statute source URL and warnings, and the " +
+        "result echoes the submitted inputs. No key needed; nothing is stored. Not legal advice.",
+      inputSchema: {
+        state: z
+          .string()
+          .regex(/^[A-Za-z]{2}$/)
+          .describe('Two-letter code of the state where the project is located, e.g. "FL", "KS", "TX".'),
+        first_delivery_date: isoDate.describe(
+          "Date materials were first delivered (first furnishing), YYYY-MM-DD. Not an invoice date.",
+        ),
+        last_delivery_date: isoDate
+          .optional()
+          .describe("Date of the final delivery, YYYY-MM-DD. Required when deliveries_complete is true."),
+        project_type: z
+          .enum(["commercial", "residential", "public"])
+          .describe("Private commercial, private residential, or public (public projects always need review)."),
+        hired_by: z
+          .enum(["owner", "contractor", "subcontractor"])
+          .describe("Who ordered the materials from the supplier."),
+        deliveries_complete: z
+          .boolean()
+          .describe("true when the final delivery has happened; false while deliveries are ongoing."),
+        special_events_reviewed: z
+          .boolean()
+          .optional()
+          .describe(
+            "Set true only when the user confirms the special events were reviewed (Florida: an earlier " +
+              "owner final payment or contract termination; Kansas: conditions or extensions). Omitted or " +
+              "false returns review_required instead of dates.",
+          ),
+        florida_final_payment_date: isoDate
+          .optional()
+          .describe("Florida only: date the owner made final payment to the contractor, if known."),
+        florida_termination_date: isoDate
+          .optional()
+          .describe(
+            "Florida only: contract or notice-of-commencement termination date. Supplying it requires " +
+              "qualified review, so no claim-of-lien date is calculated.",
+          ),
+      },
+      annotations: READ_ONLY,
+    },
+    async (args) => {
+      try {
+        return ok(await calculateSupplierDeadlines(BASE_URL, args));
+      } catch (error) {
+        return fail(error);
+      }
     },
   );
 
   server.registerTool(
     "calculate_lien_deadline",
     {
-      title: "Calculate mechanics lien deadlines",
+      title: "Calculate invoice deadlines (customer API key)",
       description:
-        "Calculates the preliminary notice deadline and the lien filing deadline for a US " +
-        "construction invoice. Needs the invoice or delivery date and the state. Returns dates, " +
-        "days remaining, and any warnings such as weekend or holiday rollover. Covers all 50 " +
-        "states plus DC. Not legal advice.",
+        "Customer API tool: requires LIENDEADLINE_API_KEY, a dedicated LienDeadline customer key. " +
+        "Calculates the preliminary notice and lien filing deadlines for one construction invoice " +
+        "from its invoice or delivery date and state, with days remaining and warnings such as " +
+        "weekend or holiday rollover. Without a key, use calculate_supplier_deadlines. Not legal advice.",
       inputSchema: {
         state: z
           .string()
@@ -85,6 +169,7 @@ export function buildServer(): McpServer {
           .optional()
           .describe('Your role on the project, e.g. "supplier", "contractor", "subcontractor".'),
       },
+      annotations: READ_ONLY,
     },
     async (args) => {
       try {
@@ -105,11 +190,13 @@ export function buildServer(): McpServer {
   server.registerTool(
     "list_supported_states",
     {
-      title: "List supported jurisdictions",
+      title: "List customer API jurisdictions (customer API key)",
       description:
-        "Returns the two-letter codes of every US jurisdiction with deadline rules available, " +
-        "all 50 states plus DC. Use this to check a code before calculating.",
+        "Customer API tool: requires LIENDEADLINE_API_KEY. Returns the two-letter codes the " +
+        "customer invoice calculation accepts. It does not list where calculate_supplier_deadlines " +
+        "has reviewed baselines (Florida and Kansas).",
       inputSchema: {},
+      annotations: READ_ONLY,
     },
     async () => {
       try {
@@ -124,19 +211,21 @@ export function buildServer(): McpServer {
   server.registerTool(
     "get_state_lien_guide",
     {
-      title: "Get the lien rules for one state",
+      title: "Get the lien guide for one state",
       description:
-        "Returns the underlying deadline rules for a state, including statute citations, the " +
-        "deadline table and common questions. Use this when the user asks why a deadline falls " +
-        "where it does, or wants the statute, rather than just a date.",
+        "Public, no key needed. Returns LienDeadline's editorial mechanics lien and preliminary " +
+        "notice guide for one state or DC: rule summary with statute citations, deadline table and " +
+        "common questions. Use it when the user asks why a deadline falls where it does or wants " +
+        "the statute. " + GUIDE_NOTE,
       inputSchema: {
         state: z.string().length(2).describe('Two-letter US state code, e.g. "TX".'),
       },
+      annotations: READ_ONLY,
     },
     async ({ state }) => {
       try {
         const guide = await getStateGuide(BASE_URL, state);
-        return ok({ ...guide, disclaimer: DISCLAIMER });
+        return ok({ ...guide, note: GUIDE_NOTE, disclaimer: GUIDE_DISCLAIMER });
       } catch (error) {
         return fail(error);
       }
@@ -148,9 +237,10 @@ export function buildServer(): McpServer {
     {
       title: "List all state guides",
       description:
-        "Returns every available state guide with its code, title and slug. Useful for " +
-        "discovering what exists before fetching one.",
+        "Public, no key needed. Returns every available state guide (all 50 states plus DC) with " +
+        "its code, title and slug. Useful for discovering what exists before fetching one.",
       inputSchema: {},
+      annotations: READ_ONLY,
     },
     async () => {
       try {

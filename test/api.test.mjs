@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test, { afterEach } from 'node:test';
-import { DEFAULT_BASE_URL, calculateDeadline, listSupportedStates, getStateGuide, listStateGuides } from '../src/api.ts';
+import {
+  DEFAULT_BASE_URL, calculateDeadline, calculateSupplierDeadlines, listSupportedStates, getStateGuide, listStateGuides,
+} from '../src/api.ts';
 
 // Synthetic key only; no issued credential or provider request.
 const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`;
@@ -107,4 +109,82 @@ test('calculation response retains the prior trimmed contract', async () => {
   assert.deepEqual(result.warnings, ['Reviewed']);
   assert.equal(result.notes, 'Statutory projection');
   assert.equal(Object.hasOwn(result, 'unused'), false);
+});
+
+// Public supplier delivery-event contract. Shapes follow the live supplier-events-v1 result.
+const supplierInput = {
+  state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
+  project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true, special_events_reviewed: true,
+};
+const supplierBody = { contract_version: 'supplier-events-v1', ...supplierInput };
+const calculated = (name, deadline, days) => ({
+  name, deadline, days_from_now: days, required: true, status: 'calculated',
+  description: `${name} baseline`, source_url: 'https://www.leg.state.fl.us/Statutes/',
+});
+const supplierResult = (inputs = supplierBody, overrides = {}) => ({
+  contract_version: 'supplier-events-v1', status: 'calculated', state_code: 'FL', role: 'supplier', inputs,
+  preliminary_notice: calculated('Notice to Owner', '2026-09-17', -12),
+  lien_filing: calculated('Claim of lien', '2026-12-09', 71),
+  critical_warnings: ['Timing is based on delivery dates, not an invoice date.'],
+  statute_citations: ['Fla. Stat. § 713.06(2)(a)', 'Fla. Stat. § 713.08(5)'],
+  disclaimer: 'Educational baseline, not legal advice.',
+  ...overrides,
+});
+
+test('supplier calculation is public: no credential, exact body, redirects refused', async () => {
+  const calls = mock(supplierResult());
+  const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput);
+  assert.equal(result.lien_filing.deadline, '2026-12-09');
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0].url).pathname, '/api/v1/supplier-deadlines');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.equal(new Headers(calls[0].init.headers).has('Authorization'), false);
+  assert.equal(calls[0].init.redirect, 'error');
+  assert.deepEqual(JSON.parse(calls[0].init.body), supplierBody);
+});
+
+test('supplier body omits unsupplied optional fields instead of sending nulls', async () => {
+  const { last_delivery_date, special_events_reviewed, ...ongoing } = supplierInput;
+  const input = { ...ongoing, deliveries_complete: false };
+  const body = { contract_version: 'supplier-events-v1', ...input };
+  const awaiting = { name: 'Claim of lien', deadline: null, days_from_now: null, required: true, status: 'awaiting_final_delivery', description: 'Awaiting final delivery' };
+  const calls = mock(supplierResult(body, { status: 'review_required', lien_filing: awaiting }));
+  const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, input);
+  assert.equal(result.lien_filing.status, 'awaiting_final_delivery');
+  assert.deepEqual(JSON.parse(calls[0].init.body), body);
+});
+
+for (const [label, input, pattern] of [
+  ['complete deliveries without a final date', { ...supplierInput, last_delivery_date: undefined }, /last_delivery_date is required/],
+  ['final delivery before first delivery', { ...supplierInput, last_delivery_date: '2026-08-01' }, /cannot be earlier than first_delivery_date/],
+  ['impossible calendar date', { ...supplierInput, first_delivery_date: '2026-02-30' }, /first_delivery_date must be a real YYYY-MM-DD date/],
+  ['unknown jurisdiction', { ...supplierInput, state: 'ZZ' }, /two-letter US state or DC code/],
+  ['Florida fields outside Florida', { ...supplierInput, state: 'KS', florida_termination_date: '2026-09-20' }, /apply only when state is FL/],
+]) {
+  test(`supplier request with ${label} fails locally without HTTP`, async () => {
+    const calls = mock(supplierResult());
+    await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, input), pattern);
+    assert.equal(calls.length, 0);
+  });
+}
+
+for (const [label, body] of [
+  ['a changed input echo', supplierResult({ ...supplierBody, state: 'KS' })],
+  ['an extra echoed field', supplierResult({ ...supplierBody, role: 'supplier' })],
+  ['a different contract', supplierResult(supplierBody, { contract_version: 'supplier-events-v2' })],
+  ['a different state', supplierResult(supplierBody, { state_code: 'KS' })],
+  ['a calculated date without a deadline', supplierResult(supplierBody, { lien_filing: { ...calculated('Claim of lien', null, null) } })],
+  ['a review status that still carries a date', supplierResult(supplierBody, { preliminary_notice: { ...calculated('Notice', '2026-09-17', -12), status: 'review_required' } })],
+  ['a non-http source link', supplierResult(supplierBody, { lien_filing: { ...calculated('Claim of lien', '2026-12-09', 71), source_url: 'javascript:alert(1)' } })],
+  ['a missing disclaimer', supplierResult(supplierBody, { disclaimer: ' ' })],
+]) {
+  test(`supplier result with ${label} is reported as an error, not dates`, async () => {
+    mock(body);
+    await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput), /does not match the submitted supplier-events-v1 request/);
+  });
+}
+
+test('supplier validation failure from the API gives a supplier-specific hint', async () => {
+  mock({ detail: [{ loc: ['body', 'state'], msg: 'bad' }] }, 422);
+  await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput), /returned 422\. Check the supplier event fields/);
 });

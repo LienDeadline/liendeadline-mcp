@@ -1,20 +1,39 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for US mechanics lien and preliminary notice deadlines. Calculates statutory deadlines for all 50 states plus DC from an invoice date, and exposes the underlying state rules with statute citations.",
+  "version": "0.2.0",
+  "description": "MCP server for US mechanics lien and preliminary notice deadlines. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and statute-cited lien guides for all 50 states plus DC.",
   "type": "module",
-  "bin": { "liendeadline-mcp": "dist/index.js" },
+  "bin": {
+    "liendeadline-mcp": "dist/index.js"
+  },
   "main": "dist/index.js",
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=22.5" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "smoke": "node dist/smoke.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-transform-types --test test/*.test.mjs"
+    "test": "node --experimental-transform-types --test test/*.test.mjs",
+    "prepack": "npm run build"
   },
-  "keywords": ["mcp", "model-context-protocol", "mechanics-lien", "construction", "deadlines", "lien", "preliminary-notice"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mechanics-lien",
+    "construction",
+    "deadlines",
+    "lien",
+    "preliminary-notice",
+    "notice-to-owner",
+    "supplier",
+    "mcp-server"
+  ],
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -23,5 +42,18 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
+  },
+  "mcpName": "io.github.LienDeadline/liendeadline-mcp",
+  "homepage": "https://liendeadline.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LienDeadline/liendeadline-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LienDeadline/liendeadline-mcp/issues"
+  },
+  "author": {
+    "name": "LienDeadline",
+    "url": "https://liendeadline.com"
   }
 }
