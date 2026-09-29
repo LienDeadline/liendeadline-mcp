@@ -36,6 +36,9 @@ Each step skips a target that already has the version, so a failed run can be re
 
 Registry versions and metadata are immutable; fix a bad release with a new version.
 
+Coverage wording in the tool descriptions and README must match what the live API calculates.
+Before releasing a change to it, `npm run coverage` must report every jurisdiction as calculated.
+
 ## One-time setup
 
 1. **First npm publish.** npm can only trust a workflow for a package that already exists,

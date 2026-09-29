@@ -20,7 +20,8 @@
     "smoke": "node dist/smoke.js",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-transform-types --test test/*.test.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "coverage": "node --experimental-transform-types scripts/coverage-check.mjs"
   },
   "keywords": [
     "mcp",
