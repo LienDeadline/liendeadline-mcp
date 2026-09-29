@@ -11,6 +11,7 @@ import {
   listSupportedStates,
 } from "./api.js";
 
+const CUSTOMER_API_KEY = process.env.LIENDEADLINE_API_KEY;
 const BASE_URL = process.env.LIENDEADLINE_API_URL?.replace(/\/+$/, "") || DEFAULT_BASE_URL;
 
 /**
@@ -93,7 +94,7 @@ export function buildServer(): McpServer {
           project_type: args.project_type,
           notice_date: args.notice_date,
           role: args.role,
-        });
+        }, CUSTOMER_API_KEY);
         return ok({ ...result, disclaimer: DISCLAIMER });
       } catch (error) {
         return fail(error);
@@ -112,7 +113,7 @@ export function buildServer(): McpServer {
     },
     async () => {
       try {
-        const states = await listSupportedStates(BASE_URL);
+        const states = await listSupportedStates(BASE_URL, CUSTOMER_API_KEY);
         return ok({ count: states.length, states });
       } catch (error) {
         return fail(error);
