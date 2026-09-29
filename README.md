@@ -7,13 +7,17 @@
 MCP server for US mechanics lien and preliminary notice deadlines, built on the
 [LienDeadline](https://liendeadline.com) API.
 
-Give it a supplier's delivery dates and the project facts, and it returns the preliminary notice
-and lien filing baselines with statute sources, warnings and an exact echo of what was
-submitted. Reviewed date baselines cover Florida and Kansas private projects; every other case
-comes back as `review_required` with the reason, rather than a guessed date. Editorial lien
-guides with statute citations cover all 50 states plus DC.
+Give it a supplier's delivery dates and project facts, and it returns the preliminary notice and
+lien filing deadlines with their statute sources and warnings.
 
-No account or API key is needed for the supplier calculation or the state guides.
+## Coverage
+
+- **Lien guides:** all 50 states and DC. No key needed.
+- **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
+  supplier rules have been reviewed so far. No key needed. For other states, public projects, or
+  when unusual project events have not been ruled out, the answer is `review_required` (needs
+  legal review) instead of a guessed date.
+- **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
 
 ## Tools
 
