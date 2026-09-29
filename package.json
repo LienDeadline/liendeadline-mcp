@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "smoke": "node dist/smoke.js"
+    "smoke": "node dist/smoke.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-transform-types --test test/*.test.mjs"
   },
   "keywords": ["mcp", "model-context-protocol", "mechanics-lien", "construction", "deadlines", "lien", "preliminary-notice"],
   "license": "MIT",

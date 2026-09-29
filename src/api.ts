@@ -1,8 +1,8 @@
 /**
  * Thin client over the public LienDeadline API.
  *
- * Every endpoint used here is public and unauthenticated as of 2026-08-19, which is
- * what makes this server useful without an API key. The schema is published at
+ * Calculation and supported-state routes require a dedicated customer Bearer key.
+ * State guides remain public. The schema is published at
  * https://liendeadline.com/api/test-api/openapi.json
  */
 
@@ -17,10 +17,40 @@ export class LienDeadlineApiError extends Error {
   }
 }
 
+const CUSTOMER_KEY_PATTERN = /^ld_live_[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/;
+
+function apiBase(baseUrl: string): URL {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new LienDeadlineApiError("LIENDEADLINE_API_URL must be a valid HTTP(S) origin.");
+  }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password ||
+      url.search || url.hash || url.pathname !== "/") {
+    throw new LienDeadlineApiError("LIENDEADLINE_API_URL must be an HTTP(S) origin without credentials, paths, queries or fragments.");
+  }
+  return url;
+}
+
+function customerHeaders(baseUrl: string, apiKey?: string): Record<string, string> {
+  if (apiBase(baseUrl).origin !== DEFAULT_BASE_URL) {
+    throw new LienDeadlineApiError("Customer tools require LIENDEADLINE_API_URL=https://secure-api-v1.liendeadline.com; keys cannot be sent to another origin.");
+  }
+  if (!apiKey) {
+    throw new LienDeadlineApiError("Set LIENDEADLINE_API_KEY to a dedicated customer key with deadline:calculate and states:read scopes. Browser sessions and provider tokens are not supported.");
+  }
+  if (!CUSTOMER_KEY_PATTERN.test(apiKey)) {
+    throw new LienDeadlineApiError("LIENDEADLINE_API_KEY must be a dedicated customer key. Obtain an active key with deadline:calculate and states:read scopes through the approved issuance process.");
+  }
+  return { Authorization: `Bearer ${apiKey}` };
+}
+
 async function request<T>(baseUrl: string, path: string, init?: RequestInit): Promise<T> {
+  const url = new URL(path, apiBase(baseUrl));
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}${path}`, {
+    res = await fetch(url.href, {
       ...init,
       headers: {
         Accept: "application/json",
@@ -28,26 +58,38 @@ async function request<T>(baseUrl: string, path: string, init?: RequestInit): Pr
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(init?.headers ?? {}),
       },
+      // Never forward a customer key through a same- or cross-origin redirect.
+      redirect: "error",
       signal: AbortSignal.timeout(20_000),
     });
-  } catch (cause) {
-    const reason = cause instanceof Error ? cause.message : String(cause);
-    throw new LienDeadlineApiError(`Could not reach the LienDeadline API: ${reason}`);
+  } catch {
+    // Fetch errors can contain request/credential details. Do not expose the cause.
+    throw new LienDeadlineApiError("Could not reach the LienDeadline API. Check connectivity and the configured API origin; redirects are not followed.");
   }
 
   if (!res.ok) {
-    // Surface the status. A 422 here almost always means an unsupported state code or a
-    // date that is not YYYY-MM-DD, and saying so is more useful than the raw body.
     const hint =
-      res.status === 400 || res.status === 422
-        ? " Check that state is a supported two-letter US code (call list_supported_states) and" +
-          " that invoice_date is YYYY-MM-DD."
-        : res.status === 404
-          ? " No guide exists for that state code."
-          : "";
+      res.status === 401
+        ? " Check that LIENDEADLINE_API_KEY is an active, unexpired customer key; replace revoked or rotated keys."
+        : res.status === 403
+          ? " The customer key needs permission for this endpoint and its account."
+          : res.status === 429
+            ? " The API rate limit was reached; retry later."
+            : res.status === 503
+              ? " Customer API service is unavailable; contact the release owner."
+              : res.status === 400 || res.status === 422
+                ? " Check that state is a supported two-letter US code and invoice_date is YYYY-MM-DD."
+                : res.status === 404
+                  ? " No guide exists for that state code."
+                  : "";
+    // Do not read or echo denial bodies, which may include sensitive content.
     throw new LienDeadlineApiError(`LienDeadline API returned ${res.status}.${hint}`, res.status);
   }
-  return (await res.json()) as T;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new LienDeadlineApiError("LienDeadline API returned an invalid JSON response.");
+  }
 }
 
 export type DeadlineResult = {
@@ -79,9 +121,11 @@ export type CalculateInput = {
 export async function calculateDeadline(
   baseUrl: string,
   input: CalculateInput,
+  apiKey?: string,
 ): Promise<DeadlineResult> {
   const raw = await request<Record<string, unknown>>(baseUrl, "/api/v1/calculate-deadline", {
     method: "POST",
+    headers: customerHeaders(baseUrl, apiKey),
     body: JSON.stringify(input),
   });
   const payload = (raw.data ?? raw.result ?? raw) as Record<string, unknown>;
@@ -99,8 +143,10 @@ export async function calculateDeadline(
   };
 }
 
-export async function listSupportedStates(baseUrl: string): Promise<string[]> {
-  const raw = await request<{ states?: string[] }>(baseUrl, "/api/v1/supported-states");
+export async function listSupportedStates(baseUrl: string, apiKey?: string): Promise<string[]> {
+  const raw = await request<{ states?: string[] }>(baseUrl, "/api/v1/supported-states", {
+    headers: customerHeaders(baseUrl, apiKey),
+  });
   return raw.states ?? [];
 }
 
