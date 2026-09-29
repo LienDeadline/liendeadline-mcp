@@ -68,7 +68,9 @@ export function buildServer(): McpServer {
         "US mechanics lien and preliminary notice deadlines for construction material suppliers. " +
         "calculate_supplier_deadlines is public and needs no key: give it the project state, first " +
         "delivery date, final delivery date when deliveries are complete, project type and who hired " +
-        "the supplier. Reviewed date baselines cover Florida and Kansas private projects; every other " +
+        "the supplier. Answer Florida final-payment and termination or Kansas extension questions " +
+        "explicitly as yes, no or unknown; missing and unknown facts need review. Reviewed date baselines " +
+        "cover Florida and Kansas private projects; every other " +
         "case returns review_required, which is an answer, not a failure. Ask for missing facts rather " +
         "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
         "and list_state_lien_guides return editorial guides with statute citations for all 50 states " +
@@ -83,9 +85,11 @@ export function buildServer(): McpServer {
       title: "Calculate supplier notice and lien deadlines",
       description:
         "Public, stateless calculation of a material supplier's preliminary notice and lien filing " +
-        "baselines from delivery events (supplier-events-v1). Reviewed baselines exist for Florida and " +
-        "Kansas private projects; other states, public projects and unreviewed special events return " +
-        "status review_required with the reason. Ongoing deliveries return awaiting_final_delivery for " +
+        "baselines from delivery events (supplier-events-v2). Florida asks whether owner final payment " +
+        "or termination occurred; Kansas asks whether a statutory extension occurred. Answer each " +
+        "applicable question yes, no or unknown. Missing or unknown answers keep the affected deadline " +
+        "under review; a blanket review flag is not accepted. Other states and public projects return " +
+        "review_required. Ongoing deliveries return awaiting_final_delivery for " +
         "the lien date. Each date carries its own status, statute source URL and warnings, and the " +
         "result echoes the submitted inputs. No key needed; nothing is stored. Not legal advice.",
       inputSchema: {
@@ -108,23 +112,27 @@ export function buildServer(): McpServer {
         deliveries_complete: z
           .boolean()
           .describe("true when the final delivery has happened; false while deliveries are ongoing."),
-        special_events_reviewed: z
-          .boolean()
+        florida_final_payment_status: z
+          .enum(["yes", "no", "unknown"])
           .optional()
-          .describe(
-            "Set true only when the user confirms the special events were reviewed (Florida: an earlier " +
-              "owner final payment or contract termination; Kansas: conditions or extensions). Omitted or " +
-              "false returns review_required instead of dates.",
-          ),
+          .describe("Florida only: did the owner make final payment to the contractor? Use unknown if unverified; yes needs a date for a notice baseline."),
+        florida_termination_status: z
+          .enum(["yes", "no", "unknown"])
+          .optional()
+          .describe("Florida only: was the original contract or notice of commencement terminated? Yes or unknown requires qualified lien review."),
         florida_final_payment_date: isoDate
           .optional()
-          .describe("Florida only: date the owner made final payment to the contractor, if known."),
+          .describe("Florida only: owner final-payment date, YYYY-MM-DD. Supply only with florida_final_payment_status=yes."),
         florida_termination_date: isoDate
           .optional()
           .describe(
-            "Florida only: contract or notice-of-commencement termination date. Supplying it requires " +
-              "qualified review, so no claim-of-lien date is calculated.",
+            "Florida only: contract or notice-of-commencement termination date. Supply only with " +
+              "florida_termination_status=yes; a lien date still requires qualified review.",
           ),
+        kansas_extension_status: z
+          .enum(["yes", "no", "unknown"])
+          .optional()
+          .describe("Kansas only: was a statutory lien-period extension filed and mailed? Yes or unknown requires qualified review; no permits the ordinary baseline."),
       },
       annotations: READ_ONLY,
     },

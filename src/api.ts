@@ -104,7 +104,7 @@ async function request<T>(
   }
 }
 
-export const SUPPLIER_EVENTS_CONTRACT_VERSION = "supplier-events-v1";
+export const SUPPLIER_EVENTS_CONTRACT_VERSION = "supplier-events-v2";
 
 const STATE_CODES = new Set(
   ("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO " +
@@ -118,7 +118,9 @@ export type SupplierInput = {
   project_type: "commercial" | "residential" | "public";
   hired_by: "owner" | "contractor" | "subcontractor";
   deliveries_complete: boolean;
-  special_events_reviewed?: boolean;
+  florida_final_payment_status?: "yes" | "no" | "unknown";
+  florida_termination_status?: "yes" | "no" | "unknown";
+  kansas_extension_status?: "yes" | "no" | "unknown";
   florida_final_payment_date?: string;
   florida_termination_date?: string;
 };
@@ -161,6 +163,19 @@ function isCivilDate(value: unknown): value is string {
 export function supplierRequestBody(input: SupplierInput): Record<string, string | boolean> {
   const problems: string[] = [];
   const isFlorida = typeof input.state === "string" && input.state.toUpperCase() === "FL";
+  const isKansas = typeof input.state === "string" && input.state.toUpperCase() === "KS";
+  const allowedFields = new Set([
+    "state", "first_delivery_date", "last_delivery_date", "project_type", "hired_by", "deliveries_complete",
+    "florida_final_payment_status", "florida_termination_status", "kansas_extension_status",
+    "florida_final_payment_date", "florida_termination_date",
+  ]);
+  for (const field of Object.keys(input)) {
+    if (field === "special_events_reviewed") {
+      problems.push("special_events_reviewed is not supported by supplier-events-v2; answer the Florida or Kansas event questions explicitly");
+    } else if (!allowedFields.has(field)) {
+      problems.push(`${field} is not a supported supplier event field`);
+    }
+  }
   if (typeof input.state !== "string" || !/^[A-Za-z]{2}$/.test(input.state) ||
       !STATE_CODES.has(input.state.toUpperCase())) {
     problems.push("state must be a two-letter US state or DC code");
@@ -179,8 +194,26 @@ export function supplierRequestBody(input: SupplierInput): Record<string, string
       problems.push(`${field} cannot be earlier than first_delivery_date`);
     }
   }
-  if (!isFlorida && (input.florida_final_payment_date !== undefined || input.florida_termination_date !== undefined)) {
-    problems.push("florida_final_payment_date and florida_termination_date apply only when state is FL");
+  for (const field of ["florida_final_payment_status", "florida_termination_status", "kansas_extension_status"] as const) {
+    const answer = input[field];
+    if (answer !== undefined && answer !== "yes" && answer !== "no" && answer !== "unknown") {
+      problems.push(`${field} must be yes, no, or unknown`);
+    }
+  }
+  if (!isFlorida && (input.florida_final_payment_status !== undefined || input.florida_termination_status !== undefined ||
+      input.florida_final_payment_date !== undefined || input.florida_termination_date !== undefined)) {
+    problems.push("Florida event answers and dates apply only when state is FL");
+  }
+  if (!isKansas && input.kansas_extension_status !== undefined) {
+    problems.push("kansas_extension_status applies only when state is KS");
+  }
+  for (const [statusField, dateField] of [
+    ["florida_final_payment_status", "florida_final_payment_date"],
+    ["florida_termination_status", "florida_termination_date"],
+  ] as const) {
+    if (input[dateField] !== undefined && input[statusField] !== "yes") {
+      problems.push(`${dateField} requires an explicit yes answer`);
+    }
   }
   if (problems.length > 0) throw new LienDeadlineApiError(`Invalid supplier request: ${problems.join("; ")}.`);
 
@@ -221,6 +254,17 @@ export function isVerifiedSupplierCalculation(
   const submitted = Object.entries(body);
   const exactEcho = Object.keys(inputs).length === submitted.length &&
     submitted.every(([key, sent]) => inputs[key] === sent);
+  const state = String(body.state).toUpperCase();
+  const floridaNoticeNeedsReview = state === "FL" && body.hired_by !== "owner" &&
+    ((body.florida_final_payment_status !== "yes" && body.florida_final_payment_status !== "no") ||
+     (body.florida_final_payment_status === "yes" && body.florida_final_payment_date === undefined));
+  const floridaLienNeedsReview = state === "FL" && body.florida_termination_status !== "no";
+  const kansasLienNeedsReview = state === "KS" && body.kansas_extension_status !== "no";
+  if ((floridaNoticeNeedsReview && r.preliminary_notice?.status !== "review_required") ||
+      ((floridaLienNeedsReview || kansasLienNeedsReview) && r.lien_filing?.status !== "review_required") ||
+      ((floridaNoticeNeedsReview || floridaLienNeedsReview || kansasLienNeedsReview) && r.status !== "review_required")) {
+    return false;
+  }
   return exactEcho &&
     r.contract_version === SUPPLIER_EVENTS_CONTRACT_VERSION &&
     r.role === "supplier" &&
@@ -246,11 +290,11 @@ export async function calculateSupplierDeadlines(
     baseUrl,
     "/api/v1/supplier-deadlines",
     { method: "POST", body: JSON.stringify(body) },
-    " Check the supplier event fields against the supplier-events-v1 schema.",
+    " Check the supplier event fields against the supplier-events-v2 schema.",
   );
   if (!isVerifiedSupplierCalculation(raw, body)) {
     throw new LienDeadlineApiError(
-      "LienDeadline API returned a result that does not match the submitted supplier-events-v1 request; no dates are reported.",
+      "LienDeadline API returned a result that does not match the submitted supplier-events-v2 request; no dates are reported.",
     );
   }
   return raw;

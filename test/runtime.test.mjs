@@ -29,6 +29,7 @@ const text = result => result.content.map(c => c.text ?? '').join('');
 const SUPPLIER_ARGS = {
   state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
   project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,
+  florida_final_payment_status: 'no', florida_termination_status: 'no',
 };
 
 test('actual stdio tools use customer key only for protected HTTP calls', async () => {
@@ -42,6 +43,11 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
       assert.equal(tool.annotations?.readOnlyHint, true);
       assert.equal(tool.annotations?.destructiveHint, false);
     }
+    const supplierSchema = tools.find(tool => tool.name === 'calculate_supplier_deadlines').inputSchema.properties;
+    assert.ok(supplierSchema.florida_final_payment_status);
+    assert.ok(supplierSchema.florida_termination_status);
+    assert.ok(supplierSchema.kansas_extension_status);
+    assert.equal(Object.hasOwn(supplierSchema, 'special_events_reviewed'), false);
     // Directory manifests declare the tool list statically; keep them identical to the server.
     for (const manifest of ['manifest.json', 'well-known/mcp.json']) {
       const declared = JSON.parse(readFileSync(new URL(`../${manifest}`, import.meta.url), 'utf8')).tools.map(t => t.name);
@@ -77,8 +83,23 @@ test('public supplier tool works without a key and returns the verified echo', a
     const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
     assert.notEqual(result.isError, true);
     const body = JSON.parse(text(result));
-    assert.equal(body.contract_version, 'supplier-events-v1');
-    assert.deepEqual(body.inputs, { contract_version: 'supplier-events-v1', ...SUPPLIER_ARGS });
+    assert.equal(body.contract_version, 'supplier-events-v2');
+    assert.deepEqual(body.inputs, { contract_version: 'supplier-events-v2', ...SUPPLIER_ARGS });
+    assert.equal(body.preliminary_notice.status, 'calculated');
+    assert.equal(body.lien_filing.status, 'calculated');
+  });
+});
+
+test('actual stdio supplier tool keeps unknown events under review without a key', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+    const { florida_final_payment_status, florida_termination_status, ...facts } = SUPPLIER_ARGS;
+    const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: facts });
+    assert.notEqual(result.isError, true);
+    const body = JSON.parse(text(result));
+    assert.equal(body.status, 'review_required');
+    assert.equal(body.preliminary_notice.deadline, null);
+    assert.equal(body.lien_filing.deadline, null);
+    assert.deepEqual(body.inputs, { contract_version: 'supplier-events-v2', ...facts });
   });
 });
 

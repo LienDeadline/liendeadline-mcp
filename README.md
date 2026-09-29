@@ -15,15 +15,15 @@ lien filing deadlines with their statute sources and warnings.
 - **Lien guides:** all 50 states and DC. No key needed.
 - **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
   supplier rules have been reviewed so far. No key needed. For other states, public projects, or
-  when unusual project events have not been ruled out, the answer is `review_required` (needs
-  legal review) instead of a guessed date.
+  when a relevant Florida payment/termination or Kansas extension answer is missing or unknown,
+  the affected deadline is `review_required` (needs legal review) instead of a guessed date.
 - **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
 
 ## Tools
 
 | Tool | Key | What it does |
 | --- | --- | --- |
-| `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from delivery events (`supplier-events-v1`) |
+| `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from explicit delivery-event answers (`supplier-events-v2`) |
 | `get_state_lien_guide` | none | Editorial guide for one state or DC: rule summary, statute citations, deadline table, FAQs |
 | `list_state_lien_guides` | none | Every available guide, by code and title |
 | `calculate_lien_deadline` | customer | Customer API: deadlines for one invoice from its invoice date and state |
@@ -89,8 +89,8 @@ Claude Code plugin that installs this server.
 ## Example
 
 `calculate_supplier_deadlines` with a Florida commercial project where a subcontractor ordered
-the materials, deliveries ran from 2026-08-03 to 2026-09-10 and the special events were
-reviewed:
+the materials, deliveries ran from 2026-08-03 to 2026-09-10, and the owner confirms neither
+final payment nor termination occurred:
 
 ```json
 {
@@ -100,7 +100,8 @@ reviewed:
   "project_type": "commercial",
   "hired_by": "subcontractor",
   "deliveries_complete": true,
-  "special_events_reviewed": true
+  "florida_final_payment_status": "no",
+  "florida_termination_status": "no"
 }
 ```
 
@@ -108,7 +109,7 @@ returns, abbreviated:
 
 ```json
 {
-  "contract_version": "supplier-events-v1",
+  "contract_version": "supplier-events-v2",
   "status": "calculated",
   "state_code": "FL",
   "preliminary_notice": { "name": "Notice to Owner", "deadline": "2026-09-17", "status": "calculated" },
@@ -118,10 +119,15 @@ returns, abbreviated:
 }
 ```
 
-The same request for Texas, a public project, or without `special_events_reviewed` returns
-`"status": "review_required"` with the reason and no dates. Ongoing deliveries return
-`awaiting_final_delivery` for the lien date. The server checks that the result echoes exactly
-what was submitted before returning it; a mismatch is reported as an error, not as dates.
+The same facts with both Florida answers omitted return `"status": "review_required"` and
+no dates. An unknown final-payment answer holds the notice date; an unknown termination answer
+holds the lien date. For Kansas, `kansas_extension_status: "no"` permits the ordinary lien
+baseline, while `"yes"`, `"unknown"`, or omission requires review and yields no lien date.
+Supply a Florida event date only with the matching `"yes"` answer. A blanket
+`special_events_reviewed` flag is not accepted. Texas and public projects also need review.
+Ongoing deliveries return `awaiting_final_delivery` for the lien date when other facts permit it.
+The server checks that the result echoes exactly what was submitted and that unresolved events
+have no affected date; a mismatch is reported as an error, not as dates.
 
 ## Customer API key (optional)
 
