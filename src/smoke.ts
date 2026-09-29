@@ -32,13 +32,13 @@ const text = (r: unknown) => {
   return ((r as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? "").join("");
 };
 
-console.log("\ncalculate_supplier_deadlines FL, deliveries complete, events reviewed:");
+console.log("\ncalculate_supplier_deadlines FL, deliveries complete, explicit no event answers:");
 const supplier = JSON.parse(text(await client.callTool({
   name: "calculate_supplier_deadlines",
   arguments: {
     state: "FL", first_delivery_date: "2026-08-03", last_delivery_date: "2026-09-10",
     project_type: "commercial", hired_by: "subcontractor", deliveries_complete: true,
-    special_events_reviewed: true,
+    florida_final_payment_status: "no", florida_termination_status: "no",
   },
 })));
 console.log(`  status=${supplier.status} notice=${supplier.preliminary_notice?.deadline} lien=${supplier.lien_filing?.deadline}`);

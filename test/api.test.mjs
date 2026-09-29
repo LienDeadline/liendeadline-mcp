@@ -111,18 +111,19 @@ test('calculation response retains the prior trimmed contract', async () => {
   assert.equal(Object.hasOwn(result, 'unused'), false);
 });
 
-// Public supplier delivery-event contract. Shapes follow the live supplier-events-v1 result.
+// Public supplier delivery-event contract. Shapes follow the live supplier-events-v2 result.
 const supplierInput = {
   state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
-  project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true, special_events_reviewed: true,
+  project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,
+  florida_final_payment_status: 'no', florida_termination_status: 'no',
 };
-const supplierBody = { contract_version: 'supplier-events-v1', ...supplierInput };
+const supplierBody = { contract_version: 'supplier-events-v2', ...supplierInput };
 const calculated = (name, deadline, days) => ({
   name, deadline, days_from_now: days, required: true, status: 'calculated',
   description: `${name} baseline`, source_url: 'https://www.leg.state.fl.us/Statutes/',
 });
 const supplierResult = (inputs = supplierBody, overrides = {}) => ({
-  contract_version: 'supplier-events-v1', status: 'calculated', state_code: 'FL', role: 'supplier', inputs,
+  contract_version: 'supplier-events-v2', status: 'calculated', state_code: inputs.state.toUpperCase(), role: 'supplier', inputs,
   preliminary_notice: calculated('Notice to Owner', '2026-09-17', -12),
   lien_filing: calculated('Claim of lien', '2026-12-09', 71),
   critical_warnings: ['Timing is based on delivery dates, not an invoice date.'],
@@ -144,14 +145,82 @@ test('supplier calculation is public: no credential, exact body, redirects refus
 });
 
 test('supplier body omits unsupplied optional fields instead of sending nulls', async () => {
-  const { last_delivery_date, special_events_reviewed, ...ongoing } = supplierInput;
+  const { last_delivery_date, ...ongoing } = supplierInput;
   const input = { ...ongoing, deliveries_complete: false };
-  const body = { contract_version: 'supplier-events-v1', ...input };
+  const body = { contract_version: 'supplier-events-v2', ...input };
   const awaiting = { name: 'Claim of lien', deadline: null, days_from_now: null, required: true, status: 'awaiting_final_delivery', description: 'Awaiting final delivery' };
-  const calls = mock(supplierResult(body, { status: 'review_required', lien_filing: awaiting }));
+  const calls = mock(supplierResult(body, { lien_filing: awaiting }));
   const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, input);
   assert.equal(result.lien_filing.status, 'awaiting_final_delivery');
   assert.deepEqual(JSON.parse(calls[0].init.body), body);
+});
+
+const review = name => ({
+  name, deadline: null, days_from_now: null, required: null,
+  status: 'review_required', description: 'Synthetic event review',
+});
+
+test('the same Florida facts without explicit event answers cannot use the old blanket-yes dates', async () => {
+  const { florida_final_payment_status, florida_termination_status, ...unanswered } = supplierInput;
+  const body = { contract_version: 'supplier-events-v2', ...unanswered };
+  const calls = mock(supplierResult(body, {
+    status: 'review_required', preliminary_notice: review('Notice to Owner'), lien_filing: review('Claim of lien'),
+  }));
+  const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, unanswered);
+  assert.equal(result.status, 'review_required');
+  assert.equal(result.preliminary_notice.deadline, null);
+  assert.equal(result.lien_filing.deadline, null);
+  assert.deepEqual(JSON.parse(calls[0].init.body), body);
+  assert.equal(calls[0].init.body.includes('special_events_reviewed'), false);
+  await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, {
+    ...unanswered, special_events_reviewed: true,
+  }), /special_events_reviewed.*not supported/);
+  assert.equal(calls.length, 1);
+});
+
+for (const [label, changes, blocked] of [
+  ['unknown final payment', { florida_final_payment_status: 'unknown' }, 'preliminary_notice'],
+  ['known payment without its date', { florida_final_payment_status: 'yes' }, 'preliminary_notice'],
+  ['unknown termination', { florida_termination_status: 'unknown' }, 'lien_filing'],
+  ['known termination', { florida_termination_status: 'yes' }, 'lien_filing'],
+]) {
+  test(`Florida ${label} keeps the affected deadline under review`, async () => {
+    const input = { ...supplierInput, ...changes };
+    const body = { contract_version: 'supplier-events-v2', ...input };
+    mock(supplierResult(body, { status: 'review_required', [blocked]: review(blocked) }));
+    const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, input);
+    assert.equal(result[blocked].deadline, null);
+    assert.equal(result[blocked].status, 'review_required');
+  });
+}
+
+test('Kansas unknown extension returns no lien date while an explicit no permits the baseline', async () => {
+  const { florida_final_payment_status, florida_termination_status, ...facts } = supplierInput;
+  const input = { ...facts, state: 'KS', kansas_extension_status: 'unknown' };
+  const body = { contract_version: 'supplier-events-v2', ...input };
+  mock(supplierResult(body, { status: 'review_required', lien_filing: review('Lien statement') }));
+  const unknown = await calculateSupplierDeadlines(DEFAULT_BASE_URL, input);
+  assert.equal(unknown.lien_filing.deadline, null);
+  const no = { ...input, kansas_extension_status: 'no' };
+  mock(supplierResult({ contract_version: 'supplier-events-v2', ...no }));
+  assert.equal((await calculateSupplierDeadlines(DEFAULT_BASE_URL, no)).lien_filing.status, 'calculated');
+});
+
+test('Florida final-payment date with matching yes preserves a verified later notice baseline', async () => {
+  const input = { ...supplierInput, florida_final_payment_status: 'yes', florida_final_payment_date: '2026-10-01' };
+  const body = { contract_version: 'supplier-events-v2', ...input };
+  const calls = mock(supplierResult(body));
+  const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, input);
+  assert.equal(result.preliminary_notice.status, 'calculated');
+  assert.equal(result.preliminary_notice.deadline, '2026-09-17');
+  assert.deepEqual(JSON.parse(calls[0].init.body), body);
+});
+
+test('an upstream calculated date for an unanswered Florida event is rejected despite an exact echo', async () => {
+  const { florida_final_payment_status, florida_termination_status, ...unanswered } = supplierInput;
+  const body = { contract_version: 'supplier-events-v2', ...unanswered };
+  mock(supplierResult(body));
+  await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, unanswered), /does not match the submitted supplier-events-v2 request/);
 });
 
 for (const [label, input, pattern] of [
@@ -160,6 +229,10 @@ for (const [label, input, pattern] of [
   ['impossible calendar date', { ...supplierInput, first_delivery_date: '2026-02-30' }, /first_delivery_date must be a real YYYY-MM-DD date/],
   ['unknown jurisdiction', { ...supplierInput, state: 'ZZ' }, /two-letter US state or DC code/],
   ['Florida fields outside Florida', { ...supplierInput, state: 'KS', florida_termination_date: '2026-09-20' }, /apply only when state is FL/],
+  ['Florida answer outside Florida', { ...supplierInput, state: 'KS' }, /apply only when state is FL/],
+  ['Kansas answer outside Kansas', { ...supplierInput, kansas_extension_status: 'unknown' }, /applies only when state is KS/],
+  ['date without yes', { ...supplierInput, florida_final_payment_date: '2026-09-20' }, /florida_final_payment_date requires an explicit yes answer/],
+  ['invalid answer', { ...supplierInput, florida_termination_status: 'maybe' }, /florida_termination_status must be yes, no, or unknown/],
 ]) {
   test(`supplier request with ${label} fails locally without HTTP`, async () => {
     const calls = mock(supplierResult());
@@ -171,7 +244,7 @@ for (const [label, input, pattern] of [
 for (const [label, body] of [
   ['a changed input echo', supplierResult({ ...supplierBody, state: 'KS' })],
   ['an extra echoed field', supplierResult({ ...supplierBody, role: 'supplier' })],
-  ['a different contract', supplierResult(supplierBody, { contract_version: 'supplier-events-v2' })],
+  ['a different contract', supplierResult(supplierBody, { contract_version: 'supplier-events-v1' })],
   ['a different state', supplierResult(supplierBody, { state_code: 'KS' })],
   ['a calculated date without a deadline', supplierResult(supplierBody, { lien_filing: { ...calculated('Claim of lien', null, null) } })],
   ['a review status that still carries a date', supplierResult(supplierBody, { preliminary_notice: { ...calculated('Notice', '2026-09-17', -12), status: 'review_required' } })],
@@ -180,7 +253,7 @@ for (const [label, body] of [
 ]) {
   test(`supplier result with ${label} is reported as an error, not dates`, async () => {
     mock(body);
-    await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput), /does not match the submitted supplier-events-v1 request/);
+    await assert.rejects(() => calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput), /does not match the submitted supplier-events-v2 request/);
   });
 }
 

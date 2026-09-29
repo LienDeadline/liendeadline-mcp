@@ -5,14 +5,22 @@ registerHooks({
     return nextResolve(specifier === './api.js' && context.parentURL?.endsWith('/src/index.ts') ? './api.ts' : specifier, context);
   },
 });
-// Shaped like the API's supplier-events-v1 result: the submitted fields echoed exactly.
-const supplierEcho = inputs => ({
-  contract_version: 'supplier-events-v1', status: 'review_required', state_code: inputs.state.toUpperCase(),
-  role: 'supplier', inputs,
-  preliminary_notice: { name: 'Preliminary notice', deadline: null, days_from_now: null, required: null, status: 'review_required', description: 'Synthetic review' },
-  lien_filing: { name: 'Lien filing', deadline: null, days_from_now: null, required: null, status: 'review_required', description: 'Synthetic review' },
-  critical_warnings: ['Synthetic review'], statute_citations: [], disclaimer: 'Synthetic disclaimer',
-});
+// Shaped like v2: explicit no answers permit baselines; missing answers never yield dates.
+const reviewed = name => ({ name, deadline: null, days_from_now: null, required: null, status: 'review_required', description: 'Synthetic review' });
+const dated = (name, deadline) => ({ name, deadline, days_from_now: 30, required: true, status: 'calculated', description: 'Synthetic baseline' });
+const supplierEcho = inputs => {
+  const notice = inputs.state.toUpperCase() === 'FL' && inputs.florida_final_payment_status === 'no'
+    ? dated('Notice to Owner', '2026-09-17') : reviewed('Notice to Owner');
+  const lien = inputs.state.toUpperCase() === 'FL' && inputs.florida_termination_status === 'no'
+    ? dated('Claim of lien', '2026-12-09') : reviewed('Claim of lien');
+  return {
+    contract_version: 'supplier-events-v2',
+    status: notice.status === 'review_required' || lien.status === 'review_required' ? 'review_required' : 'calculated',
+    state_code: inputs.state.toUpperCase(), role: 'supplier', inputs,
+    preliminary_notice: notice, lien_filing: lien,
+    critical_warnings: ['Synthetic supplier baseline'], statute_citations: [], disclaimer: 'Synthetic disclaimer',
+  };
+};
 globalThis.fetch = async (url, init) => {
   const path = new URL(url).pathname;
   const protectedRoute = ['/api/v1/calculate-deadline', '/api/v1/supported-states'].includes(path);
