@@ -13,10 +13,9 @@ lien filing deadlines with their statute sources and warnings.
 ## Coverage
 
 - **Lien guides:** all 50 states and DC. No key needed.
-- **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
-  supplier rules have been reviewed so far. No key needed. For other states, public projects, or
-  when unusual project events have not been ruled out, the answer is `review_required` (needs
-  legal review) instead of a guessed date.
+- **Calculated supplier deadlines:** private projects in all 50 states and DC. No key needed. For
+  public projects, or when unusual project events have not been ruled out, the answer is
+  `review_required` (needs legal review) with the reason instead of a guessed date.
 - **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
 
 ## Tools
@@ -118,7 +117,7 @@ returns, abbreviated:
 }
 ```
 
-The same request for Texas, a public project, or without `special_events_reviewed` returns
+The same request for a public project, or without `special_events_reviewed`, returns
 `"status": "review_required"` with the reason and no dates. Ongoing deliveries return
 `awaiting_final_delivery` for the lien date. The server checks that the result echoes exactly
 what was submitted before returning it; a mismatch is reported as an error, not as dates.

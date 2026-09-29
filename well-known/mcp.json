@@ -1,6 +1,6 @@
 {
   "serverInfo": { "name": "LienDeadline", "version": "0.2.0" },
-  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and editorial state lien guides with statute citations for all 50 states plus DC.",
+  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers in all 50 states plus DC, with statute-cited state lien guides.",
   "capabilities": { "tools": true },
   "tools": [
     { "name": "calculate_supplier_deadlines", "description": "Supplier notice and lien filing baselines from delivery events. Public, no key." },
