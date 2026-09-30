@@ -1,0 +1,19 @@
+# Weekly grouped updates. npm-shrinkwrap.json is published with the package, so a merged
+# dependency update reaches npx users only through the next release (see RELEASING.md).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

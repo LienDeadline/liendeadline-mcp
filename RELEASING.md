@@ -38,7 +38,8 @@ Registry versions and metadata are immutable; fix a bad release with a new versi
 
 `npm-shrinkwrap.json` is published with the package and locks every transitive dependency for
 `npx` users, so a dependency update, including a security fix, reaches users only through a new
-release. `npm ci` installs from the same file.
+release. `npm ci` installs from the same file. Dependabot opens grouped weekly update PRs and
+security-fix PRs; after merging one that changes `npm-shrinkwrap.json`, cut a patch release.
 
 ## One-time setup
 
