@@ -38,11 +38,11 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "zod": "^3.24.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.6.0"
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2"
   },
   "mcpName": "io.github.LienDeadline/liendeadline-mcp",
   "homepage": "https://liendeadline.com",
