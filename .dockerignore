@@ -1,5 +1,9 @@
 node_modules
 dist
+build
 .git
+.github
 test
-*.mcpb
+docs
+.env*
+**/*.mcpb

@@ -1,8 +1,10 @@
-// Child-process preload for isolated stdio tests. Every HTTP request is mocked.
+// Child-process preload for isolated stdio and HTTP tests. Every upstream HTTP request is mocked.
 import { registerHooks } from 'node:module';
 registerHooks({
   resolve(specifier, context, nextResolve) {
-    return nextResolve(specifier === './api.js' && context.parentURL?.endsWith('/src/index.ts') ? './api.ts' : specifier, context);
+    // Run the TypeScript sources directly: their relative ./x.js imports resolve to ./x.ts.
+    const fromSource = /\/src\/[\w-]+\.ts$/.test(context.parentURL ?? '');
+    return nextResolve(fromSource && /^\.\/[\w-]+\.js$/.test(specifier) ? specifier.replace(/\.js$/, '.ts') : specifier, context);
   },
 });
 // Shaped like v2: explicit no answers permit baselines; missing answers never yield dates.
@@ -27,9 +29,12 @@ globalThis.fetch = async (url, init) => {
   const authorization = new Headers(init.headers).get('Authorization');
   if (init.redirect !== 'error' || (protectedRoute
       ? authorization !== `Bearer ${process.env.LIENDEADLINE_API_KEY}`
-      : authorization !== null)) {
+      : authorization !== null) ||
+      // Hosted tests forbid Authorization on every route, protected or not.
+      (process.env.MCP_TEST_FORBID_AUTHORIZATION === '1' && authorization !== null)) {
     throw new Error('Credential isolation contract failed');
   }
+  if (process.env.MCP_TEST_DELAY_MS) await new Promise(resolve => setTimeout(resolve, Number(process.env.MCP_TEST_DELAY_MS)));
   if (process.env.MCP_TEST_STATUS) {
     return new Response(JSON.stringify({ detail: process.env.LIENDEADLINE_API_KEY }), { status: Number(process.env.MCP_TEST_STATUS) });
   }

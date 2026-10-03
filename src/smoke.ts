@@ -1,29 +1,41 @@
 /**
  * End-to-end check: launches the built server over stdio and calls every tool against the
  * live API. Public tools always run; customer tools run only when LIENDEADLINE_API_KEY is set.
+ * With LIENDEADLINE_MCP_URL it drives that hosted Streamable HTTP endpoint instead, which must
+ * serve exactly the public tools; no key is ever sent to it.
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 if (process.env.LIENDEADLINE_RUN_LIVE_SMOKE !== "1") {
   throw new Error("Live smoke requires explicit LIENDEADLINE_RUN_LIVE_SMOKE=1; customer tools also need an approved LIENDEADLINE_API_KEY. Use npm test for isolated checks.");
 }
-const customerKey = process.env.LIENDEADLINE_API_KEY;
+const hostedUrl = process.env.LIENDEADLINE_MCP_URL;
+const customerKey = hostedUrl ? undefined : process.env.LIENDEADLINE_API_KEY;
 
-const transport = new StdioClientTransport({
-  command: process.execPath,
-  args: [new URL("./index.js", import.meta.url).pathname],
-  env: {
-    ...(customerKey ? { LIENDEADLINE_API_KEY: customerKey } : {}),
-    ...(process.env.LIENDEADLINE_API_URL ? { LIENDEADLINE_API_URL: process.env.LIENDEADLINE_API_URL } : {}),
-  },
-});
+const transport = hostedUrl
+  ? new StreamableHTTPClientTransport(new URL(hostedUrl))
+  : new StdioClientTransport({
+    command: process.execPath,
+    args: [new URL("./index.js", import.meta.url).pathname],
+    env: {
+      ...(customerKey ? { LIENDEADLINE_API_KEY: customerKey } : {}),
+      ...(process.env.LIENDEADLINE_API_URL ? { LIENDEADLINE_API_URL: process.env.LIENDEADLINE_API_URL } : {}),
+    },
+  });
 const client = new Client({ name: "smoke", version: "0.0.0" });
 await client.connect(transport);
 
 const { tools } = await client.listTools();
 console.log(`tools: ${tools.length}`);
 for (const t of tools) console.log(`  - ${t.name}: ${t.title ?? ""}`);
+if (hostedUrl) {
+  const names = tools.map((t) => t.name).sort().join(", ");
+  if (names !== "calculate_supplier_deadlines, get_state_lien_guide, list_state_lien_guides") {
+    throw new Error(`The hosted endpoint must serve exactly the three public tools; it lists: ${names}.`);
+  }
+}
 
 const text = (r: unknown) => {
   if ((r as { isError?: boolean }).isError) {
@@ -75,7 +87,9 @@ if (customerKey) {
   if (!(bad as { isError?: boolean }).isError) throw new Error("Expected unsupported state to return an MCP error.");
   console.log("  isError=true (response details omitted)");
 } else {
-  console.log("\ncustomer tools skipped: LIENDEADLINE_API_KEY not set");
+  console.log(hostedUrl
+    ? "\ncustomer tools skipped: the hosted endpoint serves only the public tools"
+    : "\ncustomer tools skipped: LIENDEADLINE_API_KEY not set");
 }
 
 await client.close();

@@ -204,6 +204,11 @@ secrets.
 `LIENDEADLINE_API_KEY` is also set. Do not use a real customer key for routine CI or unapproved
 live acceptance. Releases follow [RELEASING.md](RELEASING.md).
 
+`npm run start:http` runs the hosted Streamable HTTP server (`POST /mcp`), which serves only the
+public tools; [docs/HOSTED.md](docs/HOSTED.md) covers its limits and deployment. With
+`LIENDEADLINE_MCP_URL` set, `npm run smoke` checks that endpoint instead of launching the stdio
+server and requires exactly the public tools.
+
 ## Not legal advice
 
 Results are calculated baselines from published state rules. Statutes change and facts vary
