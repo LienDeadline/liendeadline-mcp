@@ -12,7 +12,12 @@ test('release version is identical in package.json, the server and every manifes
   assert.equal(VERSION, pkg.version);
   assert.equal(server.version, pkg.version);
   assert.equal(bundle.version, pkg.version);
+  assert.equal(read('well-known/mcp.json').serverInfo.version, pkg.version);
   for (const entry of server.packages) assert.equal(entry.version, pkg.version);
+});
+
+test('registry manifest lists the hosted Streamable HTTP endpoint next to the npm package', () => {
+  assert.deepEqual(server.remotes, [{ type: 'streamable-http', url: 'https://mcp.liendeadline.com/mcp' }]);
 });
 
 test('registry description fits the 100-character registry limit', () => {

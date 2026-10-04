@@ -1,6 +1,6 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "MCP server for US mechanics lien and preliminary notice deadlines. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and statute-cited lien guides for all 50 states plus DC.",
   "type": "module",
   "bin": {
