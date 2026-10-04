@@ -66,6 +66,7 @@ const CUSTOMER_INSTRUCTIONS =
   "LIENDEADLINE_API_KEY. ";
 
 // Every tool only calculates or reads; none sends notices, files liens or makes payments.
+// Each tool also repeats its title in its annotations, where directory reviewers look for it.
 const READ_ONLY = {
   readOnlyHint: true,
   destructiveHint: false,
@@ -178,7 +179,7 @@ export function buildServer(options: ServerOptions): McpServer {
               "lien baseline; yes, unknown or omitted requires qualified review.",
           ),
       },
-      annotations: READ_ONLY,
+      annotations: { title: "Calculate supplier notice and lien deadlines", ...READ_ONLY },
     },
     async (args) => {
       try {
@@ -230,7 +231,7 @@ export function buildServer(options: ServerOptions): McpServer {
             .optional()
             .describe('Your role on the project, e.g. "supplier", "contractor", "subcontractor".'),
         },
-        annotations: READ_ONLY,
+        annotations: { title: "Calculate invoice deadlines (customer API key)", ...READ_ONLY },
       },
       async (args) => {
         try {
@@ -259,7 +260,7 @@ export function buildServer(options: ServerOptions): McpServer {
           "where calculate_supplier_deadlines has reviewed baselines (Florida and Kansas). Takes no " +
           "parameters. Read-only.",
         inputSchema: {},
-        annotations: READ_ONLY,
+        annotations: { title: "List customer API jurisdictions (customer API key)", ...READ_ONLY },
       },
       async () => {
         try {
@@ -286,7 +287,7 @@ export function buildServer(options: ServerOptions): McpServer {
       inputSchema: {
         state: z.string().length(2).describe('Two-letter US state or DC code, e.g. "TX"; case-insensitive.'),
       },
-      annotations: READ_ONLY,
+      annotations: { title: "Get the lien guide for one state", ...READ_ONLY },
     },
     async ({ state }) => {
       try {
@@ -309,7 +310,7 @@ export function buildServer(options: ServerOptions): McpServer {
         "not where calculate_supplier_deadlines produces dates. Takes no parameters. Public and " +
         "read-only; no key needed.",
       inputSchema: {},
-      annotations: READ_ONLY,
+      annotations: { title: "List all state guides", ...READ_ONLY },
     },
     async () => {
       try {
