@@ -59,3 +59,22 @@ test('the published package locks its dependency tree with npm-shrinkwrap.json',
     assert.ok(shrinkwrap.packages[`node_modules/${dep}`]?.version, `${dep} is locked`);
   }
 });
+
+test('the ChatGPT plugin package points at the hosted endpoint and stays within the listing limits', () => {
+  const plugin = read('openai-plugin/plugin.json');
+  const mcp = read('openai-plugin/mcp.json');
+  const servers = Object.values(mcp.mcpServers);
+  assert.equal(servers.length, 1, 'OpenAI connects exactly one MCP server per plugin');
+  assert.deepEqual(servers[0], { type: 'streamable-http', url: server.remotes[0].url });
+  const ui = plugin.extensions['com.openai'].interface;
+  assert.ok(ui.displayName.length <= 30 && ui.shortDescription.length <= 30 && ui.longDescription.length <= 4000);
+  assert.ok(ui.defaultPrompt.every(p => p.length <= 128));
+  for (const url of [ui.websiteURL, ui.supportURL, ui.privacyPolicyURL, ui.termsOfServiceURL]) assert.match(url, /^https:\/\//);
+  const review = plugin.extensions['com.openai'].review.test_cases;
+  assert.equal(review.positive.length, 5);
+  assert.equal(review.negative.length, 3);
+  const icon = readFileSync(new URL('../assets/icon.png', import.meta.url));
+  for (const file of [ui.logo, ui.composerIcon]) {
+    assert.deepEqual(readFileSync(new URL(`../openai-plugin/${file.replace(/^\.\//, '')}`, import.meta.url)), icon, file);
+  }
+});

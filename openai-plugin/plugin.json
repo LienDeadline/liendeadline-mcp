@@ -1,0 +1,106 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "liendeadline",
+  "version": "1.0.0",
+  "description": "Mechanics lien and preliminary notice deadlines for US construction material suppliers, with statute citations, plus lien guides for all 50 states and DC.",
+  "author": {
+    "name": "LienDeadline",
+    "email": "support@liendeadline.com",
+    "url": "https://liendeadline.com"
+  },
+  "homepage": "https://liendeadline.com",
+  "repository": "https://github.com/LienDeadline/liendeadline-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mechanics-lien",
+    "preliminary-notice",
+    "construction",
+    "deadlines",
+    "legal"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "LienDeadline",
+        "shortDescription": "Lien and notice deadlines",
+        "longDescription": "LienDeadline helps construction material suppliers protect their lien rights. Give it a project's delivery dates and facts, and it calculates the preliminary notice and lien filing deadlines wherever LienDeadline has reviewed the state's supplier rules. Each date comes with its statute source and warnings. When a deadline depends on facts that are missing or unverified, or on rules that haven't been reviewed, it says the deadline needs qualified review instead of guessing a date.\n\nIt also returns LienDeadline's editorial mechanics lien guides for all 50 states and DC: rule summaries with statute citations, deadline tables and common questions.\n\nAll three tools are read-only. The plugin never sends notices, files liens or makes payments. It needs no account or API key and stores nothing between requests. Results are educational baselines, not legal advice; verify critical deadlines with counsel.",
+        "developerName": "LienDeadline",
+        "category": "Productivity",
+        "capabilities": [
+          "Calculate supplier preliminary notice and lien filing deadlines from delivery dates",
+          "Cite the statute behind each deadline",
+          "Flag deadlines that need qualified review instead of guessing",
+          "Look up mechanics lien guides for all 50 states and DC",
+          "List the available state guides"
+        ],
+        "websiteURL": "https://liendeadline.com",
+        "supportURL": "https://liendeadline.com/contact",
+        "privacyPolicyURL": "https://liendeadline.com/privacy",
+        "termsOfServiceURL": "https://liendeadline.com/terms",
+        "defaultPrompt": [
+          "When are my Florida notice and lien deadlines for deliveries Aug 3 to Sep 10, 2026?",
+          "Explain Texas mechanics lien rules for material suppliers, with statutes",
+          "Which states have lien guides, and what does Georgia's say?"
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Calculate Florida supplier deadlines with known event answers",
+              "prompt": "Florida commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete. The owner hasn't made final payment and the contract wasn't terminated. When are our Notice to Owner and lien deadlines?",
+              "tools_triggered": "calculate_supplier_deadlines",
+              "expected_behavior": "Status calculated: Notice to Owner 2026-09-17 and claim of lien 2026-12-09, citing Fla. Stat. 713.06(2)(a) and 713.08(5), with a not-legal-advice note."
+            },
+            {
+              "description": "Florida project with unknown event answers",
+              "prompt": "Florida commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete. I don't know whether the owner made final payment or whether the contract was terminated. When are my deadlines?",
+              "tools_triggered": "calculate_supplier_deadlines",
+              "expected_behavior": "Status review_required with no dates; the reply explains which answers are missing instead of guessing a date."
+            },
+            {
+              "description": "Calculate Kansas supplier deadlines",
+              "prompt": "Kansas commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete; no lien-period extension was filed. When is my lien deadline?",
+              "tools_triggered": "calculate_supplier_deadlines",
+              "expected_behavior": "Status calculated: preliminary notice not required and lien statement due 2026-12-10, citing K.S.A. 60-1103 and 60-1103a."
+            },
+            {
+              "description": "Explain one state's lien rules",
+              "prompt": "Explain Texas mechanics lien rules for a material supplier and cite the statutes.",
+              "tools_triggered": "get_state_lien_guide",
+              "expected_behavior": "The Texas guide citing Texas Property Code 53.056, with deadline rows, FAQs and a source link; no dates are calculated from the day counts."
+            },
+            {
+              "description": "List the available state guides",
+              "prompt": "Which states do you have lien guides for?",
+              "tools_triggered": "list_state_lien_guides",
+              "expected_behavior": "51 guides, all 50 states plus DC, in alphabetical order."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Filing a lien is out of scope",
+              "prompt": "File a mechanics lien for me in Florida."
+            },
+            {
+              "description": "Unrelated request",
+              "prompt": "What's the weather in Miami today?"
+            },
+            {
+              "description": "Legal conclusions are out of scope",
+              "prompt": "Is my lien valid, and will I win if I sue?"
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "LienDeadline does not sell products or process payments in this plugin."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "First release: supplier preliminary notice and lien deadline calculations from delivery dates, and mechanics lien guides for all 50 states and DC. Read-only; no account needed."
+      }
+    }
+  }
+}
