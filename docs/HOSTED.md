@@ -6,8 +6,10 @@ ChatGPT and Codex app directory, Smithery's live tool scan (it lists 0 tools for
 bundle; see [#7](https://github.com/LienDeadline/liendeadline-mcp/issues/7)) and remote-only MCP
 lists.
 
-**Status:** not deployed. The target is `https://mcp.liendeadline.com/mcp`. Deployment, DNS, the
-registry entry and the release each need the owner's go-ahead; the steps below are the plan.
+**Hosted URL:** `https://mcp.liendeadline.com/mcp`. Deployment configuration and receipts are
+managed privately; this document describes the interface and operating procedure. Verify
+`/health` and run the remote smoke before configuring a client. Registry releases and directory
+submissions are separate from endpoint deployment.
 
 ## What it serves
 
@@ -153,15 +155,18 @@ public repository and the Cloud Build upload.
 
 ## Delivery pipeline
 
-The Cloud Build trigger listens only to pushes on `main`; pull-request CI has no deployment
-credentials. Its inline configuration and a dedicated build identity are managed privately.
+A secret-backed GitHub push webhook starts Cloud Build only for this repository's `main` branch;
+pull-request CI has no deployment credentials. The webhook authentication material, inline build
+configuration and dedicated build identity are managed privately, outside this public repository.
 The runtime identity has no project roles or secrets. The build identity can write only this
 service's image repository, update only this Cloud Run service, and use only its runtime identity.
 
-Each run installs the locked dependencies, compiles, typechecks and tests, builds the Dockerfile's
+Each run clones only `main` and records its exact commit, installs the locked dependencies,
+compiles, typechecks and tests, builds the Dockerfile's
 `http` target, pushes the image and deploys its immutable digest with no traffic. The candidate
 must pass health, MCP tool discovery, representative tool calls and CORS checks before that
-named revision receives traffic. A failed candidate leaves the serving revision in place.
+named revision receives traffic. Promotion also requires the tested commit to remain current
+`main`. A failed candidate leaves the serving revision in place.
 
 ## Upstream coordination
 
