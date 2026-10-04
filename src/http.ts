@@ -35,6 +35,13 @@ const TRUST_PROXY_HOPS = envInt("MCP_TRUST_PROXY_HOPS", 0, 0);
 const MCP_PATH = "/mcp";
 // Cloud Run's front end answers paths ending in "z" itself, so /health is the externally reachable alias.
 const HEALTH_PATHS = new Set(["/healthz", "/health"]);
+// OpenAI's app directory verifies domain ownership by fetching the token it issues from this path
+// as plain text. The path answers 404 until OPENAI_APPS_CHALLENGE is set.
+const OPENAI_CHALLENGE_PATH = "/.well-known/openai-apps-challenge";
+const OPENAI_APPS_CHALLENGE = process.env.OPENAI_APPS_CHALLENGE?.trim() ?? "";
+if (OPENAI_APPS_CHALLENGE && !/^[\x21-\x7e]{1,512}$/.test(OPENAI_APPS_CHALLENGE)) {
+  throw new Error("OPENAI_APPS_CHALLENGE must be 1 to 512 printable ASCII characters without spaces.");
+}
 
 // Browser-based MCP clients need CORS. The tools are public and keyless, so any origin may call them.
 const CORS_HEADERS = {
@@ -194,6 +201,16 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   if (HEALTH_PATHS.has(path)) {
     if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
     return sendJson(res, 200, { status: "ok" });
+  }
+  if (path === OPENAI_CHALLENGE_PATH && OPENAI_APPS_CHALLENGE) {
+    if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+    res.writeHead(200, {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Length": String(Buffer.byteLength(OPENAI_APPS_CHALLENGE)),
+      "Cache-Control": "no-store",
+    });
+    res.end(req.method === "HEAD" ? undefined : OPENAI_APPS_CHALLENGE);
+    return;
   }
   if (path !== MCP_PATH) return sendJson(res, 404, { error: "Not found" });
 

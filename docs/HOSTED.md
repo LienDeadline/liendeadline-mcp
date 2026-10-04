@@ -52,6 +52,7 @@ curl -s https://mcp.liendeadline.com/mcp \
 | `MCP_RATE_LIMIT_MAX`, `MCP_RATE_LIMIT_WINDOW_MS` | `120`, `60000` | `POST /mcp` per client address, in a fixed window per instance. Excess requests get `429` with `Retry-After`. IPv6 counts per /64. |
 | `MCP_TRUST_PROXY_HOPS` | `0`; the image sets `1` | Proxies that append the client address to `X-Forwarded-For`. Entries further left are client-supplied and ignored. |
 | `LIENDEADLINE_API_URL` | production API | Upstream origin, as for stdio. |
+| `OPENAI_APPS_CHALLENGE` | unset | OpenAI's app-directory domain token, served as plain text at `GET /.well-known/openai-apps-challenge`. Unset, that path is `404`. Printable ASCII only, at most 512 characters. |
 
 - **Logs:** one JSON line per request with `severity`, `method`, `status` and `latencyMs`. No
   paths, bodies, tool arguments, client addresses or user agents. Cloud Run's own request log
@@ -192,6 +193,10 @@ each release.
 Directory submissions are separate: the claude.ai Connectors directory, the ChatGPT/Codex app
 directory, Smithery by URL (close #7 once its scan lists the three tools) and remote-only lists.
 Use `support@liendeadline.com` as the contact, and keep submission text coverage-neutral.
+
+OpenAI verifies the endpoint's domain before review. Set the token it issues as
+`OPENAI_APPS_CHALLENGE` on the service; that creates a new revision, which then needs the usual
+promotion before the token is served.
 
 ## Local run
 
