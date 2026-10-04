@@ -332,3 +332,31 @@ test('hosted server refuses invalid numeric configuration before listening', () 
   assert.match(result.stderr, /MCP_RATE_LIMIT_MAX must be an integer/);
   assert.doesNotMatch(result.stdout, /listening/);
 });
+
+test('serves the OpenAI domain-verification token only when one is configured', async () => {
+  const path = '/.well-known/openai-apps-challenge';
+  await withHostedServer({}, async url => {
+    assert.equal((await fetch(new URL(path, url))).status, 404);
+  });
+  await withHostedServer({ OPENAI_APPS_CHALLENGE: 'synthetic-challenge-token' }, async url => {
+    const get = await fetch(new URL(path, url));
+    assert.equal(get.status, 200);
+    assert.match(get.headers.get('content-type'), /^text\/plain/);
+    assert.equal(get.headers.get('cache-control'), 'no-store');
+    assert.equal(await get.text(), 'synthetic-challenge-token');
+    const head = await fetch(new URL(path, url), { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), '');
+    const post = await fetch(new URL(path, url), { method: 'POST' });
+    assert.equal(post.status, 405);
+    assert.equal(post.headers.get('allow'), 'GET, HEAD');
+  });
+});
+
+test('refuses to start with a malformed OpenAI challenge token', () => {
+  const result = spawnSync(process.execPath, ['--experimental-transform-types', '--import', MOCK, source('http.ts')], {
+    env: { PORT: '0', OPENAI_APPS_CHALLENGE: 'has a space' }, encoding: 'utf8', timeout: 10_000,
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /OPENAI_APPS_CHALLENGE must be/);
+});
