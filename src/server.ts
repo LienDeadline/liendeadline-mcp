@@ -46,8 +46,8 @@ const GUIDE_DISCLAIMER =
   "Verify critical deadlines with counsel.";
 
 const GUIDE_NOTE =
-  "Editorial reference, not a calculation. Do not derive filing dates from the day counts; " +
-  "use calculate_supplier_deadlines, and treat anything it does not calculate as requiring qualified review.";
+  "Editorial reference, not a calculation: the day counts are summaries, not computed deadlines. " +
+  "Deadlines that calculate_supplier_deadlines does not calculate require qualified review.";
 
 const PUBLIC_INSTRUCTIONS =
   "US mechanics lien and preliminary notice deadlines for construction material suppliers. " +
@@ -59,11 +59,15 @@ const PUBLIC_INSTRUCTIONS =
   "case returns review_required, which is an answer, not a failure. Ask for missing facts rather " +
   "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
   "and list_state_lien_guides return editorial guides with statute citations for all 50 states " +
-  "plus DC. ";
+  "plus DC: use get_state_lien_guide to explain the rules behind a date and list_state_lien_guides " +
+  "to find valid state codes. Guide day counts are editorial summaries; take dates only from " +
+  "calculate_supplier_deadlines, and treat anything it does not calculate as requiring qualified " +
+  "review. ";
 
 const CUSTOMER_INSTRUCTIONS =
   "calculate_lien_deadline and list_supported_states are customer API tools that need " +
-  "LIENDEADLINE_API_KEY. ";
+  "LIENDEADLINE_API_KEY. list_supported_states returns the codes calculate_lien_deadline accepts; " +
+  "without a key, or with delivery events rather than an invoice, use calculate_supplier_deadlines. ";
 
 // Every tool only calculates or reads; none sends notices, files liens or makes payments.
 // Each tool also repeats its title in its annotations, where directory reviewers look for it.
@@ -98,16 +102,15 @@ export function buildServer(options: ServerOptions): McpServer {
       title: "Calculate supplier notice and lien deadlines",
       description:
         "Calculates a construction material supplier's preliminary notice and lien filing deadlines " +
-        "from delivery events (contract supplier-events-v2). Use it whenever the user needs dates; use " +
-        "get_state_lien_guide to explain the rules behind them. Reviewed baselines cover Florida and " +
-        "Kansas private projects; other states and public projects return review_required, which is an " +
-        "answer, not an error. How the parameters depend on each other: last_delivery_date is required " +
-        "when deliveries_complete is true. Florida (FL) asks florida_final_payment_status and " +
-        "florida_termination_status; Kansas (KS) asks kansas_extension_status; these are rejected for " +
-        "other states. Answer each yes, no or unknown: an omitted or unknown answer keeps the affected " +
-        "deadline under review, and a blanket review flag is not accepted. A Florida event date is " +
-        "accepted only with the matching yes answer. Ask the user for missing facts instead of guessing, " +
-        "and never use an invoice date as a delivery date. Returns JSON with an overall status " +
+        "from delivery events (contract supplier-events-v2), for questions that need deadline dates. " +
+        "Reviewed baselines cover Florida and Kansas private projects; other states and public projects " +
+        "return review_required, which is a valid result, not an error. How the parameters depend on " +
+        "each other: last_delivery_date is required when deliveries_complete is true. Florida (FL) takes " +
+        "florida_final_payment_status and florida_termination_status; Kansas (KS) takes " +
+        "kansas_extension_status; these are rejected for other states. Each takes yes, no or unknown: " +
+        "an omitted or unknown answer keeps the affected deadline under review, and a blanket review " +
+        "flag is not accepted. A Florida event date is accepted only with the matching yes answer. " +
+        "Delivery dates are furnishing dates, not invoice dates. Returns JSON with an overall status " +
         "(calculated or review_required), preliminary_notice and lien_filing (each with its own status: " +
         "calculated, not_required, review_required or awaiting_final_delivery, plus deadline, " +
         "days_from_now, description and statute source_url), critical_warnings, statute_citations, an " +
@@ -147,7 +150,7 @@ export function buildServer(options: ServerOptions): McpServer {
           .enum(["yes", "no", "unknown"])
           .optional()
           .describe(
-            "Florida only: did the owner make final payment to the contractor? Use unknown if unverified; " +
+            "Florida only: did the owner make final payment to the contractor? unknown when not verified; " +
               "omitted or unknown keeps the notice under review, and yes needs florida_final_payment_date " +
               "for a notice baseline.",
           ),
@@ -204,15 +207,13 @@ export function buildServer(options: ServerOptions): McpServer {
           "or delivery date and state. Returns JSON with state, invoice_date, project_type, " +
           "preliminary_notice_deadline, lien_deadline, waiver_due_date, prelim_deadline_days, " +
           "lien_deadline_days, warnings such as weekend or holiday rollover, notes and a disclaimer; " +
-          "values the API does not return are null. Check accepted codes with list_supported_states. " +
-          "Without a key, or when you have delivery events rather than an invoice, use " +
-          "calculate_supplier_deadlines. API denials (401 key, 403 scope, 429 rate limit) return a tool " +
-          "error. Read-only. Not legal advice.",
+          "values the API does not return are null. API denials (401 key, 403 scope, 429 rate limit) " +
+          "return a tool error. Read-only. Not legal advice.",
         inputSchema: {
           state: z
             .string()
             .length(2)
-            .describe('Two-letter US state code, e.g. "TX", "CA", "DC"; one of the codes list_supported_states returns.'),
+            .describe('Two-letter US state code, e.g. "TX", "CA", "DC", from the jurisdictions the customer API supports.'),
           invoice_date: z
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -255,10 +256,9 @@ export function buildServer(options: ServerOptions): McpServer {
         title: "List customer API jurisdictions (customer API key)",
         description:
           "Customer API tool: requires LIENDEADLINE_API_KEY with the states:read scope. Returns count and " +
-          "the two-letter codes that calculate_lien_deadline accepts; use it first when unsure a " +
-          "jurisdiction is covered. It does not list editorial guides (use list_state_lien_guides) or " +
-          "where calculate_supplier_deadlines has reviewed baselines (Florida and Kansas). Takes no " +
-          "parameters. Read-only.",
+          "the two-letter codes of the jurisdictions the customer invoice calculation accepts. It does not " +
+          "list editorial guides or the states with reviewed supplier baselines. Takes no parameters. " +
+          "Read-only.",
         inputSchema: {},
         annotations: { title: "List customer API jurisdictions (customer API key)", ...READ_ONLY },
       },
@@ -280,10 +280,11 @@ export function buildServer(options: ServerOptions): McpServer {
       description:
         "Returns LienDeadline's editorial mechanics lien and preliminary notice guide for one state or " +
         "DC: rules (rule summary with statute citations), deadline_rows (deadline table), faqs (common " +
-        "questions) and source_url (the guide's web page), roughly 4 KB of JSON. Use it when the user " +
-        "asks how a state's lien or notice rules work, why a deadline falls where it does, or which " +
-        "statute applies. Call list_state_lien_guides first if you need the valid codes; an unknown code " +
-        "returns an error. " + GUIDE_NOTE + " Public and read-only; no key needed.",
+        "questions) and source_url (the guide's web page), roughly 4 KB of JSON. For questions about how " +
+        "a state's lien or notice rules work, why a deadline falls where it does, or which statute " +
+        "applies. An unknown state code returns an error. The guide is an editorial reference, not a " +
+        "calculation: its day counts are summaries, not computed deadlines. Public and read-only; no " +
+        "key needed.",
       inputSchema: {
         state: z.string().length(2).describe('Two-letter US state or DC code, e.g. "TX"; case-insensitive.'),
       },
@@ -305,10 +306,9 @@ export function buildServer(options: ServerOptions): McpServer {
       title: "List all state guides",
       description:
         "Lists every published state lien guide in one response, without pagination: count plus " +
-        "state_code, title and slug for all 50 states and DC, in alphabetical order by state name. Use " +
-        "it to find a valid code before calling get_state_lien_guide. It lists editorial guides only, " +
-        "not where calculate_supplier_deadlines produces dates. Takes no parameters. Public and " +
-        "read-only; no key needed.",
+        "state_code, title and slug for all 50 states and DC, in alphabetical order by state name. It " +
+        "lists editorial guides only and does not indicate which states have calculated deadlines. " +
+        "Takes no parameters. Public and read-only; no key needed.",
       inputSchema: {},
       annotations: { title: "List all state guides", ...READ_ONLY },
     },
