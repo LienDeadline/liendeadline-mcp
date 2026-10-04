@@ -79,7 +79,8 @@ test('hosted initialize and tools/list over HTTP return exactly the three public
       assert.deepEqual(tools.map(t => t.name), PUBLIC_TOOLS);
       for (const tool of tools) {
         assert.ok(tool.title, `${tool.name} has a title`);
-        assert.deepEqual(tool.annotations, { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+        // Directory reviewers read the title from the annotations, so it must repeat the tool title.
+        assert.deepEqual(tool.annotations, { title: tool.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true });
       }
       assert.doesNotMatch(client.getInstructions(), /calculate_lien_deadline|list_supported_states|LIENDEADLINE_API_KEY/);
       // Customer tools are not registered at all, so they cannot be called either.

@@ -43,6 +43,7 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
     for (const tool of tools) {
       assert.equal(tool.annotations?.readOnlyHint, true);
       assert.equal(tool.annotations?.destructiveHint, false);
+      assert.equal(tool.annotations?.title, tool.title);
     }
     const supplierSchema = tools.find(tool => tool.name === 'calculate_supplier_deadlines').inputSchema.properties;
     assert.ok(supplierSchema.florida_final_payment_status);
