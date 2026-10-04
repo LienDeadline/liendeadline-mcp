@@ -6,6 +6,7 @@
  * forwarded. Logs carry only the HTTP method, status and latency of each request, never
  * bodies, tool arguments or client addresses.
  */
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -42,6 +43,16 @@ const OPENAI_APPS_CHALLENGE = process.env.OPENAI_APPS_CHALLENGE?.trim() ?? "";
 if (OPENAI_APPS_CHALLENGE && !/^[\x21-\x7e]{1,512}$/.test(OPENAI_APPS_CHALLENGE)) {
   throw new Error("OPENAI_APPS_CHALLENGE must be 1 to 512 printable ASCII characters without spaces.");
 }
+// Clients such as Claude show the favicon of the server's host next to the connector. The image
+// copies assets/icon.png next to dist/; without it these paths answer 404.
+const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.png"]);
+const FAVICON = (() => {
+  try {
+    return readFileSync(new URL("../assets/icon.png", import.meta.url));
+  } catch {
+    return undefined;
+  }
+})();
 
 // Browser-based MCP clients need CORS. The tools are public and keyless, so any origin may call them.
 const CORS_HEADERS = {
@@ -201,6 +212,16 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   if (HEALTH_PATHS.has(path)) {
     if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
     return sendJson(res, 200, { status: "ok" });
+  }
+  if (FAVICON_PATHS.has(path) && FAVICON) {
+    if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+    res.writeHead(200, {
+      "Content-Type": "image/png",
+      "Content-Length": String(FAVICON.length),
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.end(req.method === "HEAD" ? undefined : FAVICON);
+    return;
   }
   if (path === OPENAI_CHALLENGE_PATH && OPENAI_APPS_CHALLENGE) {
     if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });

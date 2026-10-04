@@ -3,6 +3,7 @@ import test from 'node:test';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { connect } from 'node:net';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -360,4 +361,20 @@ test('refuses to start with a malformed OpenAI challenge token', () => {
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /OPENAI_APPS_CHALLENGE must be/);
+});
+
+test('serves the LienDeadline icon as the host favicon', async () => {
+  const icon = readFileSync(new URL('../assets/icon.png', import.meta.url));
+  await withHostedServer({}, async url => {
+    for (const path of ['/favicon.ico', '/favicon.png']) {
+      const get = await fetch(new URL(path, url));
+      assert.equal(get.status, 200);
+      assert.equal(get.headers.get('content-type'), 'image/png');
+      assert.deepEqual(Buffer.from(await get.arrayBuffer()), icon);
+    }
+    const head = await fetch(new URL('/favicon.ico', url), { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), '');
+    assert.equal((await fetch(new URL('/favicon.ico', url), { method: 'POST' })).status, 405);
+  });
 });
