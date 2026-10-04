@@ -13,6 +13,9 @@ then publishes, in order:
 
 Each step skips a target that already has the version, so a failed run can be re-run.
 
+A release does not redeploy the hosted Streamable HTTP endpoint; that service is built and
+deployed separately (see [docs/HOSTED.md](docs/HOSTED.md)).
+
 ## Cutting a release
 
 1. Bump the version in `package.json` (`npm version <x.y.z> --no-git-tag-version`),
