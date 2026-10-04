@@ -71,9 +71,9 @@ The endpoint therefore adds no capacity against the API beyond calling the publi
 The LienDeadline GCP project (set `PROJECT` to its ID, recorded in the Ops repository), region
 `us-central1`, service `liendeadline-mcp`, minimum instances 0.
 
-The production API (`liendeadline-api`) runs in `europe-west1` behind the `secure-api-v1`
-domain mapping. With this service in `us-central1`, requests from US-based clients stay in the
-US, and only tool calls cross to `europe-west1`.
+Project identifiers, IAM bindings, trigger configuration and deployment receipts belong in
+the private operations control plane. Keep credentials and secret-bearing files out of this
+public repository and the Cloud Build upload.
 
 1. **Image.** Create the Artifact Registry repository once, then build the `http` target from a
    clean checkout of the reviewed commit. Cloud Build records the digest and build ID:
@@ -115,8 +115,7 @@ US, and only tool calls cross to `europe-west1`.
    The record is `mcp CNAME ghs.googlehosted.com`. The Google-managed certificate is issued after
    it resolves.
 
-4. **Cloudflare.** Keep `mcp` **DNS-only**, as `secure-api-v1` and `api-dev` are today (`liendeadline.com`
-   and `www` are proxied). Cloudflare's Bot Fight Mode, WAF, AI-bot blocking and rate limiting
+4. **Cloudflare.** Keep `mcp` **DNS-only**. Cloudflare's Bot Fight Mode, WAF, AI-bot blocking and rate limiting
    then do not apply, so SmitheryBot, Claude, ChatGPT and other MCP clients reach Cloud Run
    directly. The image default `MCP_TRUST_PROXY_HOPS=1` fits this setup, assuming Google's front
    end appends only the client address; step 5 checks that.
@@ -152,19 +151,27 @@ US, and only tool calls cross to `europe-west1`.
    is per instance, so a few more may pass if Cloud Run started a second instance. Then a request
    from another network, such as Cloud Shell, must still get `200`.
 
-## Upstream API rate limits
+## Delivery pipeline
+
+The Cloud Build trigger listens only to pushes on `main`; pull-request CI has no deployment
+credentials. Its inline configuration and a dedicated build identity are managed privately.
+The runtime identity has no project roles or secrets. The build identity can write only this
+service's image repository, update only this Cloud Run service, and use only its runtime identity.
+
+Each run installs the locked dependencies, compiles, typechecks and tests, builds the Dockerfile's
+`http` target, pushes the image and deploys its immutable digest with no traffic. The candidate
+must pass health, MCP tool discovery, representative tool calls and CORS checks before that
+named revision receives traffic. A failed candidate leaves the serving revision in place.
+
+## Upstream coordination
 
 All hosted tool calls reach `https://secure-api-v1.liendeadline.com` from this service's egress.
 Coordinate the per-source limit with the API owner before listing the endpoint.
 
-- On 2026-10-04 the API's `main` branch had no app-level limit on `/api/v1/supplier-deadlines`
-  or `/api/v1/state-guides/*`, and no default limit. Its per-route slowapi limits key on the
-  client address. `secure-api-v1` is DNS-only, so no Cloudflare rule applies either.
 - If a per-source limit is added in the API or at Cloudflare, hosted traffic counts as one
   source, or a few, and every hosted user shares that budget.
 - Cloud Run egress has no fixed address by default. A stable source the API can raise or exempt
-  needs Direct VPC egress and Cloud NAT with a reserved address. The Compute Engine API is not
-  enabled in the project (checked 2026-10-04), so this needs it enabled. The User-Agent
+  needs a separately approved egress configuration. The User-Agent
   (`liendeadline-mcp/<version>`) is shared with local installs and can be spoofed, so it is not a
   basis for an exemption.
 - Until then, the hosted limits cap what one client can drive: 120 calls a minute on each of at

@@ -1,0 +1,7 @@
+.gcloudignore
+.git
+.github
+#!include:.gitignore
+.env*
+**/.env*
+.DS_Store

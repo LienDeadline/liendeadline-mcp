@@ -5,6 +5,12 @@
 #     --config=cloudbuild.hosted.yaml \
 #     --substitutions=_IMAGE=us-central1-docker.pkg.dev/$PROJECT/liendeadline-mcp/server:$(git rev-parse --short HEAD) .
 steps:
+  - name: node:22-alpine
+    id: checks
+    entrypoint: sh
+    args: ["-ec", "npm ci --ignore-scripts && npm run build && npm run typecheck && npm test"]
   - name: gcr.io/cloud-builders/docker
     args: ["build", "--target", "http", "--tag", "${_IMAGE}", "."]
 images: ["${_IMAGE}"]
+options:
+  logging: CLOUD_LOGGING_ONLY
