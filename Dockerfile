@@ -19,6 +19,8 @@ USER node
 # Public tools only; reads no secrets. Cloud Run sets PORT. One trusted hop assumes Cloud Run's
 # front end is the only proxy appending to X-Forwarded-For; docs/HOSTED.md verifies it after deploy.
 FROM runtime AS http
+# Served as the host's favicon, which Claude shows next to the connector.
+COPY assets/icon.png ./assets/icon.png
 ENV HOST=0.0.0.0 PORT=8080 MCP_TRUST_PROXY_HOPS=1
 EXPOSE 8080
 ENTRYPOINT ["node", "dist/http.js"]
