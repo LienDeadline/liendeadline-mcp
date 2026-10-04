@@ -44,7 +44,14 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
       assert.equal(tool.annotations?.readOnlyHint, true);
       assert.equal(tool.annotations?.destructiveHint, false);
       assert.equal(tool.annotations?.title, tool.title);
+      // Directory policy: a description says what its tool does, with no instructions about model
+      // behavior or other tools. Cross-tool guidance belongs in the server instructions.
+      for (const other of tools) {
+        if (other.name !== tool.name) assert.equal(tool.description.includes(other.name), false, `${tool.name} mentions ${other.name}`);
+      }
+      assert.doesNotMatch(tool.description, /\b(?:Use it|Call|Ask|never|Do not)\b/, tool.name);
     }
+    assert.match(client.getInstructions(), /use get_state_lien_guide to explain the rules behind a date/);
     const supplierSchema = tools.find(tool => tool.name === 'calculate_supplier_deadlines').inputSchema.properties;
     assert.ok(supplierSchema.florida_final_payment_status);
     assert.ok(supplierSchema.florida_termination_status);
