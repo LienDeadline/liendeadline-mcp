@@ -182,29 +182,16 @@ Coordinate the per-source limit with the API owner before listing the endpoint.
 - Until then, the hosted limits cap what one client can drive: 120 calls a minute on each of at
   most 3 instances.
 
-## After deploy: 0.4.0
+## Registry and directories
 
-Do these once the endpoint answers publicly; the registry requires a reachable URL.
+Since 0.4.0, `server.json` lists the endpoint under `remotes` next to the npm package, so the
+official MCP Registry and the directories it feeds offer both. `test/metadata.test.mjs` keeps the
+URL in place. The registry requires a publicly reachable URL, so keep the endpoint serving before
+each release.
 
-1. In `server.json`, add the remote next to the npm package:
-
-   ```json
-   "remotes": [{ "type": "streamable-http", "url": "https://mcp.liendeadline.com/mcp" }]
-   ```
-
-2. Bump to `0.4.0` in `package.json` and `npm-shrinkwrap.json`
-   (`npm version 0.4.0 --no-git-tag-version` updates both), `server.json` (top level and the
-   package entry), `manifest.json`, `VERSION` in `src/api.ts` and `well-known/mcp.json`. Add a
-   metadata test that `server.json` lists the remote.
-3. Add a "Hosted endpoint" section to the README: the URL, that it serves only the public tools,
-   and client setup. For example: `claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp`,
-   a claude.ai custom connector, and VS Code `"type": "http"`. Extend "Privacy and data" with the
-   hosted request logging described above.
-4. Release per [RELEASING.md](../RELEASING.md), then check that the registry's `0.4.0` entry
-   shows the remote.
-5. Submit the URL to the claude.ai Connectors directory, the ChatGPT/Codex app directory, Smithery
-   (close #7 once its scan lists the three tools) and remote-only lists. Use `support@liendeadline.com`
-   as the contact, and keep submission text coverage-neutral.
+Directory submissions are separate: the claude.ai Connectors directory, the ChatGPT/Codex app
+directory, Smithery by URL (close #7 once its scan lists the three tools) and remote-only lists.
+Use `support@liendeadline.com` as the contact, and keep submission text coverage-neutral.
 
 ## Local run
 

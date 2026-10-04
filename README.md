@@ -31,9 +31,51 @@ lien filing deadlines with their statute sources and warnings.
 
 Every tool is read-only: none of them sends notices, files liens or makes payments.
 
+## Hosted endpoint
+
+The public tools are also served over MCP Streamable HTTP at `https://mcp.liendeadline.com/mcp`,
+with nothing to install and no key: `calculate_supplier_deadlines`, `get_state_lien_guide` and
+`list_state_lien_guides`. The customer tools run only in the local package below.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp
+```
+
+Claude on the web or desktop: add it as a custom connector under Settings → Connectors, with the
+URL above.
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "liendeadline": { "type": "http", "url": "https://mcp.liendeadline.com/mcp" }
+  }
+}
+```
+
+Cursor and other clients that use an `mcpServers` JSON config:
+
+```json
+{
+  "mcpServers": {
+    "liendeadline": { "url": "https://mcp.liendeadline.com/mcp" }
+  }
+}
+```
+
+OpenAI Codex CLI:
+
+```bash
+codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp
+```
+
 ## Install
 
-Requires Node.js 22 or newer. The server runs locally over stdio. The package ships
+Requires Node.js 22 or newer. The package runs locally over stdio and serves all five tools,
+including the customer tools. The package ships
 `npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io) as
 `io.github.LienDeadline/liendeadline-mcp`.
@@ -189,6 +231,11 @@ to `https://secure-api-v1.liendeadline.com`:
   does not save them.
 - The guide tools send only the state code.
 - The customer tools send the invoice facts and the customer key as a Bearer header.
+
+The hosted endpoint makes the same requests on your behalf and stores nothing between requests.
+Its own log records only the HTTP method, status and latency of each request, never tool
+arguments; the hosting platform's request log also records the URL, client IP address and user
+agent.
 
 LienDeadline's [privacy policy](https://liendeadline.com/privacy) covers the API.
 
