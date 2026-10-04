@@ -1,41 +1,33 @@
-# liendeadline-mcp
+<div align="center">
 
-[![npm](https://img.shields.io/npm/v/liendeadline-mcp)](https://www.npmjs.com/package/liendeadline-mcp)
-[![LienDeadline/liendeadline-mcp MCP server](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp/badges/score.svg)](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+<img src="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/icon.png" width="72" alt="LienDeadline">
 
-MCP server for US mechanics lien and preliminary notice deadlines, built on the
-[LienDeadline](https://liendeadline.com) API.
+# LienDeadline MCP
+
+**US mechanics lien and preliminary notice deadlines, for AI agents.**
+
+Statute-cited lien guides for all 50 states and DC. Calculated supplier deadlines where the state rules have been reviewed.
+
+**[liendeadline.com](https://liendeadline.com)**
+
+[![npm](https://img.shields.io/npm/v/liendeadline-mcp)](https://www.npmjs.com/package/liendeadline-mcp) [![LienDeadline/liendeadline-mcp MCP server](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp/badges/score.svg)](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+[Quick start](#quick-start) · [Coverage](#coverage) · [Tools](#tools) · [Example](#example) · [Run locally](#run-locally) · [API key](#customer-api-key-optional) · [Privacy](#privacy-and-data)
+
+</div>
+
+---
 
 Give it a supplier's delivery dates and project facts, and it returns the preliminary notice and
 lien filing deadlines with their statute sources and warnings.
 
-## Coverage
+- **Nothing to install, no key.** The hosted endpoint serves the public tools over MCP Streamable HTTP.
+- **Every date cites its statute.** Results carry the sections they were calculated from.
+- **It does not guess.** Where a state's rules have not been reviewed, or a required fact is
+  missing, the deadline comes back `review_required` with no date.
+- **Read-only.** No tool sends notices, files liens or makes payments.
 
-- **Lien guides:** all 50 states and DC. No key needed.
-- **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
-  supplier rules have been reviewed so far. No key needed. For other states, public projects, or
-  when a relevant Florida payment/termination or Kansas extension answer is missing or unknown,
-  the affected deadline is `review_required` (needs legal review) instead of a guessed date.
-- **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
-
-## Tools
-
-| Tool | Key | What it does |
-| --- | --- | --- |
-| `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from explicit delivery-event answers (`supplier-events-v2`) |
-| `get_state_lien_guide` | none | Editorial guide for one state or DC: rule summary, statute citations, deadline table, FAQs |
-| `list_state_lien_guides` | none | Every available guide, by code and title |
-| `calculate_lien_deadline` | customer | Customer API: deadlines for one invoice from its invoice date and state |
-| `list_supported_states` | customer | Customer API: jurisdictions the invoice calculation accepts |
-
-Every tool is read-only: none of them sends notices, files liens or makes payments.
-
-## Hosted endpoint
-
-The public tools are also served over MCP Streamable HTTP at `https://mcp.liendeadline.com/mcp`,
-with nothing to install and no key: `calculate_supplier_deadlines`, `get_state_lien_guide` and
-`list_state_lien_guides`. The customer tools run only in the local package below.
+## Quick start
 
 Claude Code:
 
@@ -44,7 +36,10 @@ claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp
 ```
 
 Claude on the web or desktop: add it as a custom connector under Settings → Connectors, with the
-URL above.
+URL `https://mcp.liendeadline.com/mcp`.
+
+<details>
+<summary><b>VS Code, Cursor, Codex and other clients</b></summary>
 
 VS Code (`.vscode/mcp.json`):
 
@@ -72,58 +67,33 @@ OpenAI Codex CLI:
 codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp
 ```
 
-## Install
+</details>
 
-Requires Node.js 22 or newer. The package runs locally over stdio and serves all five tools,
-including the customer tools. The package ships
-`npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
-[official MCP Registry](https://registry.modelcontextprotocol.io) as
-`io.github.LienDeadline/liendeadline-mcp`.
+The hosted endpoint serves the three public tools: `calculate_supplier_deadlines`,
+`get_state_lien_guide` and `list_state_lien_guides`. The customer tools run only in the
+[local package](#run-locally).
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=liendeadline&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImxpZW5kZWFkbGluZS1tY3AiXX0=)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522-y%2522%252C%2522liendeadline-mcp%2522%255D%257D)
+## Coverage
 
-Claude Desktop: download `liendeadline-mcp-<version>.mcpb` from the
-[latest release](https://github.com/LienDeadline/liendeadline-mcp/releases/latest) and open it.
+| | Where | Key |
+| --- | --- | --- |
+| **Lien guides** | All 50 states and DC | None |
+| **Calculated supplier deadlines** | Florida and Kansas private projects, the states whose supplier rules have been reviewed so far | None |
+| **Customer invoice calculation** | 51 jurisdictions | LienDeadline customer API key |
 
-Claude Code:
+For other states, public projects, or when a relevant Florida payment/termination or Kansas
+extension answer is missing or unknown, the affected deadline is `review_required` (needs legal
+review) instead of a guessed date.
 
-```bash
-claude mcp add liendeadline -- npx -y liendeadline-mcp
-```
+## Tools
 
-Claude Desktop, Cursor, Windsurf and other clients that use an `mcpServers` JSON config:
-
-```json
-{
-  "mcpServers": {
-    "liendeadline": {
-      "command": "npx",
-      "args": ["-y", "liendeadline-mcp"]
-    }
-  }
-}
-```
-
-VS Code (`.vscode/mcp.json`):
-
-```json
-{
-  "servers": {
-    "liendeadline": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "liendeadline-mcp"]
-    }
-  }
-}
-```
-
-OpenAI Codex CLI:
-
-```bash
-codex mcp add liendeadline -- npx -y liendeadline-mcp
-```
+| Tool | Key | What it does |
+| --- | --- | --- |
+| `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from explicit delivery-event answers (`supplier-events-v2`) |
+| `get_state_lien_guide` | none | Editorial guide for one state or DC: rule summary, statute citations, deadline table, FAQs |
+| `list_state_lien_guides` | none | Every available guide, by code and title |
+| `calculate_lien_deadline` | customer | Customer API: deadlines for one invoice from its invoice date and state |
+| `list_supported_states` | customer | Customer API: jurisdictions the invoice calculation accepts |
 
 For agent instructions that pair with these tools, see the
 [LienDeadline agent skill](https://github.com/LienDeadline/skills), which is also packaged as a
@@ -171,6 +141,64 @@ Supply a Florida event date only with the matching `"yes"` answer. A blanket
 Ongoing deliveries return `awaiting_final_delivery` for the lien date when other facts permit it.
 The server checks that the result echoes exactly what was submitted and that unresolved events
 have no affected date; a mismatch is reported as an error, not as dates.
+
+## Run locally
+
+Requires Node.js 22 or newer. The package runs over stdio and serves all five tools, including
+the customer tools. It ships `npm-shrinkwrap.json`, so `npx` installs the exact dependency
+versions each release was tested with. It is listed in the
+[official MCP Registry](https://registry.modelcontextprotocol.io) as
+`io.github.LienDeadline/liendeadline-mcp`.
+
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=liendeadline&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImxpZW5kZWFkbGluZS1tY3AiXX0=)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522-y%2522%252C%2522liendeadline-mcp%2522%255D%257D)
+
+Claude Code:
+
+```bash
+claude mcp add liendeadline -- npx -y liendeadline-mcp
+```
+
+Claude Desktop: download `liendeadline-mcp-<version>.mcpb` from the
+[latest release](https://github.com/LienDeadline/liendeadline-mcp/releases/latest) and open it.
+
+<details>
+<summary><b>Cursor, Windsurf, VS Code and Codex</b></summary>
+
+Claude Desktop, Cursor, Windsurf and other clients that use an `mcpServers` JSON config:
+
+```json
+{
+  "mcpServers": {
+    "liendeadline": {
+      "command": "npx",
+      "args": ["-y", "liendeadline-mcp"]
+    }
+  }
+}
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "liendeadline": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "liendeadline-mcp"]
+    }
+  }
+}
+```
+
+OpenAI Codex CLI:
+
+```bash
+codex mcp add liendeadline -- npx -y liendeadline-mcp
+```
+
+</details>
 
 ## Customer API key (optional)
 
@@ -241,6 +269,9 @@ LienDeadline's [privacy policy](https://liendeadline.com/privacy) covers the API
 
 ## Development
 
+<details>
+<summary><b>Build, test and smoke checks</b></summary>
+
 With Node 22.23 or newer, run `npm ci --ignore-scripts`, `npm run typecheck`, and `npm test`.
 Tests use synthetic credentials and mocked HTTP without API/provider access. Hosted CI also
 compiles the package. Pull requests and scheduled checks do not call the live API or require
@@ -255,6 +286,8 @@ live acceptance. Releases follow [RELEASING.md](RELEASING.md).
 public tools; [docs/HOSTED.md](docs/HOSTED.md) covers its limits and deployment. With
 `LIENDEADLINE_MCP_URL` set, `npm run smoke` checks that endpoint instead of launching the stdio
 server and requires exactly the public tools.
+
+</details>
 
 ## Not legal advice
 
