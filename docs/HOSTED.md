@@ -62,9 +62,9 @@ curl -s https://mcp.liendeadline.com/mcp \
   `Authorization`, `Mcp-Session-Id`, `Mcp-Protocol-Version` and `Last-Event-ID`. Origins are not
   restricted because the tools are public and keyless. With no session or credential to protect,
   DNS-rebinding protection would add nothing.
-- **No secrets:** the image holds `package.json`, `npm-shrinkwrap.json`, production
-  `node_modules` and `dist`, and runs as `node`. The service needs no Secret Manager entry and no
-  Google Cloud permissions.
+- **Configuration:** the image holds `package.json`, `npm-shrinkwrap.json`, production
+  `node_modules` and `dist`, and runs as `node`. Tools need no secrets or Google Cloud permissions.
+  Optional analytics uses a project capture token supplied through the private operations control plane.
 
 Every tool call makes at most one upstream request, and `initialize` and `tools/list` make none.
 The endpoint therefore adds no capacity against the API beyond calling the public API directly.
@@ -159,7 +159,8 @@ public repository and the Cloud Build upload.
 A secret-backed GitHub push webhook starts Cloud Build only for this repository's `main` branch;
 pull-request CI has no deployment credentials. The webhook authentication material, inline build
 configuration and dedicated build identity are managed privately, outside this public repository.
-The runtime identity has no project roles or secrets. The build identity can write only this
+The runtime identity has no broad project roles. If analytics uses Secret Manager, grant access
+only to its capture-token secret. The build identity can write only this
 service's image repository, update only this Cloud Run service, and use only its runtime identity.
 
 Each run clones only `main` and records its exact commit, installs the locked dependencies,
@@ -168,6 +169,41 @@ compiles, typechecks and tests, builds the Dockerfile's
 must pass health, MCP tool discovery, representative tool calls and CORS checks before that
 named revision receives traffic. Promotion also requires the tested commit to remain current
 `main`. A failed candidate leaves the serving revision in place.
+
+## PostHog analytics
+
+Analytics is disabled unless all four values are set:
+
+| Variable | Value |
+| --- | --- |
+| `POSTHOG_ENABLED` | `true` |
+| `POSTHOG_PROJECT_TOKEN` | The existing LienDeadline PostHog project's `phc_` capture token, supplied through private runtime configuration. |
+| `POSTHOG_HOST` | `https://us.i.posthog.com` (or the allowlisted EU collector for an EU project). |
+| `POSTHOG_ENVIRONMENT` | `production`, `staging`, `local` or `test`, matching the actual deployment. |
+
+The hosted entry point uses `@posthog/mcp` with a bounded `posthog-node` queue: at most 1,000
+events, two-second collector requests, no retries and a three-second shutdown drain. Delivery
+is best effort; a collector outage can leave counts incomplete. The stdio entry point does not
+load this integration. Its upstream API requests can still be attributed as MCP requests.
+
+The send filter constructs a new payload containing only event name, tool name, success/error,
+duration, a fixed client-family bucket, server version, environment and schema version. Each
+event has a new random identifier; person profiles and GeoIP are disabled. Tool parameters,
+results, intent, model, session/conversation IDs, raw client metadata, headers and exception
+details are removed. SDK options preserve the existing tool schemas and results.
+The HTTP boundary also suppresses the SDK's optional session-correlation response header,
+preserving the endpoint's existing stateless interface.
+
+This supports PostHog's [native MCP Analytics](https://posthog.com/docs/mcp-analytics/start-here)
+for tool volume, failures and latency. Unique users, retained sessions and intent analysis are
+not measured. `review_required` is a successful calculation result, not an MCP failure.
+
+The [MCP & Skills Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177568)
+compares native tool calls, API requests attributed to MCP/skills and skill-document requests.
+The [Product & API Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177569)
+shows public-page requests, API operations, outcomes and latency. Both use production events
+over 30 days. Source attribution is self-reported; document requests are not installs or runs.
+Data starts after the integration is released and runtime configuration is enabled.
 
 ## Upstream coordination
 

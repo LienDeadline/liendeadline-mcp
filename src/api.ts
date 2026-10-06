@@ -8,7 +8,7 @@
  */
 
 /** Keep in step with package.json and server.json; test/metadata.test.mjs enforces it. */
-export const VERSION = "0.4.1";
+export const VERSION = "0.4.2";
 
 export const DEFAULT_BASE_URL = "https://secure-api-v1.liendeadline.com";
 
