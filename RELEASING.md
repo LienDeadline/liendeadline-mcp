@@ -19,8 +19,8 @@ deployed separately (see [docs/HOSTED.md](docs/HOSTED.md)).
 ## Cutting a release
 
 1. Bump the version in `package.json` (`npm version <x.y.z> --no-git-tag-version`),
-   `server.json` (top-level and package entry), `manifest.json` and `VERSION` in
-   `src/api.ts`. `npm test` fails until they all match.
+   `server.json` (top-level and package entry), `manifest.json`, `well-known/mcp.json`,
+   `npm-shrinkwrap.json` (top-level and root package entry) and `VERSION` in `src/api.ts`. `npm test` fails until they all match.
 2. Update the pinned `liendeadline-mcp@<version>` in
    [LienDeadline/skills](https://github.com/LienDeadline/skills) after the release is live.
 3. Merge to `main`, then tag the merge commit and push the tag:
@@ -75,3 +75,14 @@ These venues are one-time submissions and pick up later versions on their own:
 | punkpeye/awesome-mcp-servers | PR adding a line under Legal with the Glama badge | Bot checks the badge and emoji |
 | mcpservers.org, MCP Market | Web forms | Free queues take weeks |
 | Anthropic plugin directory, Cursor Marketplace | Submit the plugin in [LienDeadline/skills](https://github.com/LienDeadline/skills) | Local servers are listed as plugins |
+
+## Pending 0.5.0 release candidate
+
+The local candidate adds the two public supplier-v3 discovery/evaluation tools, bringing the
+hosted tool count to five and stdio to seven. It does not activate additional legal policies
+or prove hosted deployment. The OpenAI plugin metadata candidate is 1.0.1.
+
+The corresponding Skills plugin candidate is 1.4.0. Its local MCP package pin intentionally
+remains `liendeadline-mcp@0.4.2` until 0.5.0 is published and verified. After that release,
+update the Skills pins and validate the published package and hosted service separately.
+No release tag, package publication or hosted deployment is implied by these version edits.

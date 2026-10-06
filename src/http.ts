@@ -1,7 +1,7 @@
 /**
  * Hosted Streamable HTTP entry point (docs/HOSTED.md).
  *
- * Serves only the three public, keyless tools in stateless mode: every POST /mcp gets a fresh
+ * Serves only the five public, keyless tools in stateless mode: every POST /mcp gets a fresh
  * server and transport, nothing is kept between requests, and no customer key is used or
  * forwarded. Logs carry only the HTTP method, status and latency of each request, never
  * bodies, tool arguments or client addresses.

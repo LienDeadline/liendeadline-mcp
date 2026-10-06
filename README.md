@@ -12,18 +12,25 @@ lien filing deadlines with their statute sources and warnings.
 
 ## Coverage
 
-- **Lien guides:** all 50 states and DC. No key needed.
-- **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
-  supplier rules have been reviewed so far. No key needed. For other states, public projects, or
-  when a relevant Florida payment/termination or Kansas extension answer is missing or unknown,
-  the affected deadline is `review_required` (needs legal review) instead of a guessed date.
-- **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
+1. **Lien guides:** all 50 states and DC. No key needed.
+2. **Available supplier calculations:** Florida and Kansas private projects through
+   `supplier-events-v2`. No key needed. Other states and public projects return
+   `review_required`. Missing or unresolved Florida payment/termination or Kansas extension
+   answers keep the affected deadline under review.
+3. **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
+   This separate invoice contract does not expand supplier-event calculation coverage.
+4. **Research progress:** as of October 6, 2026, the [human-review tracker](https://github.com/LienDeadline/liendeadline-api/issues/327)
+   accepts Peter's conditional decisions for 19 jurisdictions across all six private supplier
+   scopes. This research count includes Florida and Kansas and DC; it is not a count of
+   available calculations. Additional coverage requires implemented rules and release acceptance.
 
 ## Tools
 
 | Tool | Key | What it does |
 | --- | --- | --- |
 | `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from explicit delivery-event answers (`supplier-events-v2`) |
+| `get_supplier_questions` | none | Live v3 scope support, conditional event questions, sources and rule identities |
+| `calculate_supplier_deadlines_v3` | none | Independent results from discovered facts and exact rule identities; activation depends on the promoted source |
 | `get_state_lien_guide` | none | Editorial guide for one state or DC: rule summary, statute citations, deadline table, FAQs |
 | `list_state_lien_guides` | none | Every available guide, by code and title |
 | `calculate_lien_deadline` | customer | Customer API: deadlines for one invoice from its invoice date and state |
@@ -34,8 +41,8 @@ Every tool is read-only: none of them sends notices, files liens or makes paymen
 ## Hosted endpoint
 
 The public tools are also served over MCP Streamable HTTP at `https://mcp.liendeadline.com/mcp`,
-with nothing to install and no key: `calculate_supplier_deadlines`, `get_state_lien_guide` and
-`list_state_lien_guides`. The customer tools run only in the local package below.
+with nothing to install and no key: `calculate_supplier_deadlines`, `get_supplier_questions`,
+`calculate_supplier_deadlines_v3`, `get_state_lien_guide` and `list_state_lien_guides`. The customer tools run only in the local package below.
 
 Claude Code:
 
@@ -74,7 +81,7 @@ codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp
 
 ## Install
 
-Requires Node.js 22.22 or newer. The package runs locally over stdio and serves all five tools,
+Requires Node.js 22.22 or newer. The package runs locally over stdio and serves all seven tools,
 including the customer tools. The package ships
 `npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io) as
@@ -208,8 +215,8 @@ request; the public tools work without a key.
   it is collapsed to the structured fields, which takes it to ~4,300 characters. The customer
   calculate endpoint returns the same object three times and is collapsed to one.
 - **Guides are not calculations.** Guide day counts are editorial summaries. Filing dates come
-  only from `calculate_supplier_deadlines`; anything it does not calculate needs qualified
-  review.
+  only from verified calculated outcomes of `calculate_supplier_deadlines` or
+  `calculate_supplier_deadlines_v3`; unresolved outcomes and raw candidates need qualified review.
 - **API origin:** customer tools send `Authorization: Bearer <key>` only to
   `https://secure-api-v1.liendeadline.com`, using `POST /api/v1/calculate-deadline` and
   `GET /api/v1/supported-states`. There is no anonymous demo fallback. `LIENDEADLINE_API_URL`
@@ -270,3 +277,11 @@ law firm and does not file anything on your behalf.
 ## Licence
 
 MIT
+
+### Discovered supplier facts (v3)
+
+The additive v3 tools query the canonical API for the exact state, project type and hiring relationship. `get_supplier_questions` returns live scope support, questions, sources, `rules_source` and `questions_identity`. Pass those identities unchanged with the discovered yes/no/unknown event objects to `calculate_supplier_deadlines_v3`. A date belongs only to a yes answer whose question permits it. Missing facts remain unknown.
+
+The client verifies nested input echoes, source identities, per-deadline status/requiredness, source references and countdown arithmetic. A 409 requires fresh discovery and confirmation; a 503 means the canonical source or implementation is unavailable. Neither result enables additional jurisdictions. The existing v2 calculation remains unchanged, with Florida/Kansas availability as described above. Research approval is not serving acceptance.
+
+Each outcome retains its own status. `no_lien_right` differs from `not_required`. Optional `candidate_deadlines` in a review-required result are raw statutory candidates, not calculated filing deadlines. They must not replace a missing deadline or be resolved by picking an earlier date.

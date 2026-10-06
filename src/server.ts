@@ -6,14 +6,16 @@ import {
   VERSION,
   calculateDeadline,
   calculateSupplierDeadlines,
+  calculateSupplierDeadlinesV3,
+  getSupplierQuestions,
   getStateGuide,
   listStateGuides,
   listSupportedStates,
 } from "./api.js";
 
 /**
- * The local stdio server registers all five tools. The hosted HTTP server registers only the
- * three public, keyless tools and can never be handed a customer key.
+ * The local stdio server registers all seven tools. The hosted HTTP server registers only the
+ * five public, keyless tools and can never be handed a customer key.
  */
 export type ServerOptions =
   | { includeCustomerTools: true; baseUrl?: string; customerApiKey?: string }
@@ -47,22 +49,29 @@ const GUIDE_DISCLAIMER =
 
 const GUIDE_NOTE =
   "Editorial reference, not a calculation: the day counts are summaries, not computed deadlines. " +
-  "Deadlines that calculate_supplier_deadlines does not calculate require qualified review.";
+  "Use verified calculated outcomes from calculate_supplier_deadlines or calculate_supplier_deadlines_v3. " +
+  "A missing deadline or unresolved candidate requires qualified review.";
 
 const PUBLIC_INSTRUCTIONS =
+  "For jurisdiction-specific questions, first use get_supplier_questions for the exact state, project type and hiring relationship. " +
+  "It returns live scope support, event questions and rule identities. Ask those questions without guessing; use calculate_supplier_deadlines_v3 " +
+  "with those identities and nested event answers. Review-required and no-lien-right outcomes remain distinct. Raw candidate_deadlines under review " +
+  "are unresolved statutory candidates, never calculated filing dates. A 409 requires fresh discovery and confirmation; a 503 means this interface " +
+  "is unavailable and is not permission to infer new coverage. The existing v2 calculator remains available for its stated scope. " +
   "US mechanics lien and preliminary notice deadlines for construction material suppliers. " +
   "calculate_supplier_deadlines is public and needs no key: give it the project state, first " +
   "delivery date, final delivery date when deliveries are complete, project type and who hired " +
   "the supplier. Answer Florida final-payment and termination or Kansas extension questions " +
-  "explicitly as yes, no or unknown; missing and unknown facts need review. Reviewed date baselines " +
+  "explicitly as yes, no or unknown; missing and unknown facts need review. Available date baselines " +
   "cover Florida and Kansas private projects; every other " +
   "case returns review_required, which is an answer, not a failure. Ask for missing facts rather " +
   "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
   "and list_state_lien_guides return editorial guides with statute citations for all 50 states " +
   "plus DC: use get_state_lien_guide to explain the rules behind a date and list_state_lien_guides " +
-  "to find valid state codes. Guide day counts are editorial summaries; take dates only from " +
-  "calculate_supplier_deadlines, and treat anything it does not calculate as requiring qualified " +
-  "review. ";
+  "to find valid state codes. Guide day counts are editorial summaries; take dates only from verified calculated outcomes of " +
+  "calculate_supplier_deadlines or calculate_supplier_deadlines_v3, and treat unresolved outcomes as requiring qualified " +
+  "review. Research approval for a jurisdiction does not enable its calculations; take dates " +
+  "only from a successful calculation response for the submitted facts. ";
 
 const CUSTOMER_INSTRUCTIONS =
   "calculate_lien_deadline and list_supported_states are customer API tools that need " +
@@ -79,6 +88,12 @@ const READ_ONLY = {
 } as const;
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const v3Scope = {
+  state: z.string().regex(/^[A-Za-z]{2}$/).describe("Project jurisdiction: state or DC."),
+  project_type: z.enum(["commercial", "residential", "public"]),
+  hired_by: z.enum(["owner", "contractor", "subcontractor"]),
+};
+const digest = z.string().regex(/^[0-9a-f]{64}$/);
 
 export function buildServer(options: ServerOptions): McpServer {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
@@ -103,7 +118,7 @@ export function buildServer(options: ServerOptions): McpServer {
       description:
         "Calculates a construction material supplier's preliminary notice and lien filing deadlines " +
         "from delivery events (contract supplier-events-v2), for questions that need deadline dates. " +
-        "Reviewed baselines cover Florida and Kansas private projects; other states and public projects " +
+        "Available baselines cover Florida and Kansas private projects; other states and public projects " +
         "return review_required, which is a valid result, not an error. How the parameters depend on " +
         "each other: last_delivery_date is required when deliveries_complete is true. Florida (FL) takes " +
         "florida_final_payment_status and florida_termination_status; Kansas (KS) takes " +
@@ -192,6 +207,31 @@ export function buildServer(options: ServerOptions): McpServer {
       }
     },
   );
+
+  server.registerTool("get_supplier_questions", {
+    title: "Discover supplier project questions",
+    description: "Returns the current supplier-events-v3 scope support, jurisdiction-specific yes/no/unknown event questions, date policies, sources and exact rule/question identities for a material supplier. Public and read-only; no key or delivery dates needed. A 503 means the reviewed source is unavailable. Approval of research alone does not activate a scope.",
+    inputSchema: v3Scope,
+    annotations: { title: "Discover supplier project questions", ...READ_ONLY },
+  }, async args => {
+    try { return ok(await getSupplierQuestions(baseUrl, { contract_version: "supplier-events-v3", role: "supplier", ...args })); }
+    catch (error) { return fail(error); }
+  });
+
+  server.registerTool("calculate_supplier_deadlines_v3", {
+    title: "Calculate from discovered supplier facts",
+    description: "Evaluates supplier-events-v3 project facts against the exact discovered rule and question identities. Returns independent notice and lien outcomes with sources and an exact nested input echo. Only calculated outcomes contain deadline dates; review candidates remain unresolved. Stale identities return 409, unavailable reviewed sources return 503. Public, stateless and read-only; no key, stored records, sent notices or filed liens.",
+    inputSchema: {
+      ...v3Scope,
+      rules_source: z.object({ schema_version: z.enum(["state-rules-v1", "state-rules-v2"]), source_version: z.string(), source_hash: digest, reviewed_commit: z.string().regex(/^[0-9a-f]{40}$/), supplier_engine_version: z.string(), implementation_manifest_hash: digest }).strict().describe("Exact rules_source from discovery for this scope."),
+      questions_identity: z.object({ questions_version: z.literal("supplier-questions-v1"), question_set_hash: digest }).strict().describe("Exact questions_identity from discovery."),
+      events: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), z.object({ answer: z.enum(["yes", "no", "unknown"]), date: isoDate.optional() }).strict()).describe("Discovered event IDs only; missing means unknown. Date only for yes and only where the question permits it. Invoice dates are not furnishing dates."),
+    },
+    annotations: { title: "Calculate from discovered supplier facts", ...READ_ONLY },
+  }, async args => {
+    try { return ok(await calculateSupplierDeadlinesV3(baseUrl, { contract_version: "supplier-events-v3", role: "supplier", ...args })); }
+    catch (error) { return fail(error); }
+  });
 
   if (options.includeCustomerTools) {
     const customerApiKey = options.customerApiKey;

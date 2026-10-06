@@ -32,8 +32,8 @@ console.log(`tools: ${tools.length}`);
 for (const t of tools) console.log(`  - ${t.name}: ${t.title ?? ""}`);
 if (hostedUrl) {
   const names = tools.map((t) => t.name).sort().join(", ");
-  if (names !== "calculate_supplier_deadlines, get_state_lien_guide, list_state_lien_guides") {
-    throw new Error(`The hosted endpoint must serve exactly the three public tools; it lists: ${names}.`);
+  if (names !== "calculate_supplier_deadlines, calculate_supplier_deadlines_v3, get_state_lien_guide, get_supplier_questions, list_state_lien_guides") {
+    throw new Error(`The hosted endpoint must serve exactly the five public tools; it lists: ${names}.`);
   }
 }
 
