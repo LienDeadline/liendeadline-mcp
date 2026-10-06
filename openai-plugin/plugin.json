@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "liendeadline",
-  "version": "1.0.0",
-  "description": "Mechanics lien and preliminary notice deadlines for US construction material suppliers, with statute citations, plus lien guides for all 50 states and DC.",
+  "version": "1.0.1",
+  "description": "Supplier notice and mechanics lien deadline baselines for Florida and Kansas private projects, plus statute-cited guides for all 50 states and DC. Other supplier calculations require review.",
   "author": {
     "name": "LienDeadline",
     "email": "support@liendeadline.com",
@@ -23,7 +23,7 @@
       "interface": {
         "displayName": "LienDeadline",
         "shortDescription": "Lien and notice deadlines",
-        "longDescription": "LienDeadline helps construction material suppliers protect their lien rights. Give it a project's delivery dates and facts, and it calculates the preliminary notice and lien filing deadlines wherever LienDeadline has reviewed the state's supplier rules. Each date comes with its statute source and warnings. When a deadline depends on facts that are missing or unverified, or on rules that haven't been reviewed, it says the deadline needs qualified review instead of guessing a date.\n\nIt also returns LienDeadline's editorial mechanics lien guides for all 50 states and DC: rule summaries with statute citations, deadline tables and common questions.\n\nAll three tools are read-only. The plugin never sends notices, files liens or makes payments. It needs no account or API key and stores nothing between requests. Results are educational baselines, not legal advice; verify critical deadlines with counsel.",
+        "longDescription": "LienDeadline helps construction material suppliers protect their lien rights. Give it a project's delivery dates and facts, and it calculates preliminary notice and lien filing baselines for Florida and Kansas private projects. Each date comes with its statute source and warnings. When a deadline depends on facts that are missing or unverified, or falls outside the available calculation coverage, it says the deadline needs qualified review. Human-reviewed research for additional jurisdictions does not by itself enable their calculations.\n\nIt also returns LienDeadline's editorial mechanics lien guides for all 50 states and DC: rule summaries with statute citations, deadline tables and common questions.\n\nFive public tools are read-only. The jurisdiction-specific discovery tools report current scope support and bind calculations to the returned rule identities; unavailable sources and unresolved facts remain under review. The plugin never sends notices, files liens or makes payments. It needs no account or API key and stores nothing between requests. Results are educational baselines, not legal advice; verify critical deadlines with counsel.",
         "developerName": "LienDeadline",
         "category": "Productivity",
         "capabilities": [
@@ -31,7 +31,8 @@
           "Cite the statute behind each deadline",
           "Flag deadlines that need qualified review instead of guessing",
           "Look up mechanics lien guides for all 50 states and DC",
-          "List the available state guides"
+          "List the available state guides",
+          "Discover current project scope support and jurisdiction-specific event questions"
         ],
         "websiteURL": "https://liendeadline.com",
         "supportURL": "https://liendeadline.com/contact",
@@ -99,7 +100,7 @@
       },
       "publication": {
         "countries": [],
-        "release_notes": "First release: supplier preliminary notice and lien deadline calculations from delivery dates, and mechanics lien guides for all 50 states and DC. Read-only; no account needed."
+        "release_notes": "Adds jurisdiction-specific supplier question discovery and calculations bound to exact rule identities, with explicit review and unavailable-source results. Updates coverage descriptions and retains Florida/Kansas delivery-event baselines and all 51 editorial guides. Five read-only public tools; no account needed. Additional research approvals do not themselves activate calculations."
       }
     }
   }

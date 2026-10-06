@@ -8,7 +8,9 @@
  */
 
 /** Keep in step with package.json and server.json; test/metadata.test.mjs enforces it. */
-export const VERSION = "0.4.2";
+import { isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3, isSupplierScopeV3, type SupplierDiscovery, type SupplierRequestV3, type SupplierResultV3, type SupplierScopeV3 } from "./supplier-v3.ts";
+
+export const VERSION = "0.5.0";
 
 export const DEFAULT_BASE_URL = "https://secure-api-v1.liendeadline.com";
 
@@ -88,7 +90,9 @@ async function request<T>(
           : res.status === 429
             ? " The API rate limit was reached; retry later."
             : res.status === 503
-              ? " Customer API service is unavailable; contact the release owner."
+              ? " The requested API service is unavailable; no deadline was calculated. Retry when the reviewed source is available."
+              : res.status === 409
+                ? " Supplier rules changed. Discover the project questions again and reconfirm the facts before retrying; do not reuse stale rule identities."
               : res.status === 400 || res.status === 422
                 ? inputHint
                 : res.status === 404
@@ -105,6 +109,21 @@ async function request<T>(
 }
 
 export const SUPPLIER_EVENTS_CONTRACT_VERSION = "supplier-events-v2";
+
+/** Public discovery is the capability authority; approval counts are not serving coverage. */
+export async function getSupplierQuestions(baseUrl: string, scope: SupplierScopeV3): Promise<SupplierDiscovery> {
+  if (!isSupplierScopeV3(scope)) throw new LienDeadlineApiError("Invalid supplier scope: select a recognized state, project type and hiring relationship.");
+  const result = await request<unknown>(baseUrl, `/api/v1/supplier-deadlines/questions?${new URLSearchParams(scope)}`, undefined, " Check the supplier project scope.");
+  if (!isSupplierDiscovery(result, scope)) throw new LienDeadlineApiError("Supplier discovery could not be verified for this scope; no questions or dates are reported.");
+  return result;
+}
+
+export async function calculateSupplierDeadlinesV3(baseUrl: string, input: SupplierRequestV3): Promise<SupplierResultV3> {
+  if (!isSupplierRequestV3(input)) throw new LienDeadlineApiError("Invalid supplier-events-v3 request: preserve discovered identities and submit yes/no/unknown event answers with real dates only for yes answers.");
+  const result = await request<unknown>(baseUrl, "/api/v1/supplier-deadlines/v3", { method: "POST", body: JSON.stringify(input) }, " Check the discovered event fields and their date policies.");
+  if (!isSupplierResultV3(result, input)) throw new LienDeadlineApiError("Supplier result does not match the exact submitted facts and rule identities; no dates are reported.");
+  return result;
+}
 
 const STATE_CODES = new Set(
   ("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO " +
