@@ -94,6 +94,31 @@ test('hosted initialize and tools/list over HTTP return exactly the three public
   });
 });
 
+test('enabled analytics preserves stateless HTTP tools when the collector is unavailable', async () => {
+  await withHostedServer({
+    POSTHOG_ENABLED: 'true', POSTHOG_PROJECT_TOKEN: `phc_${'A'.repeat(24)}`,
+    POSTHOG_HOST: 'https://us.i.posthog.com', POSTHOG_ENVIRONMENT: 'test',
+  }, async (url, logs, errors) => {
+    await withClient(url, async client => {
+      const { tools } = await client.listTools();
+      assert.deepEqual(tools.map(tool => tool.name), PUBLIC_TOOLS);
+      for (const tool of tools) {
+        for (const field of ['context', 'llm_model', 'conversation_id']) {
+          assert.equal(Object.hasOwn(tool.inputSchema.properties ?? {}, field), false);
+        }
+      }
+      const result = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX' } });
+      assert.notEqual(result.isError, true, text(result));
+      assert.equal(result.content.length, 1);
+      assert.equal(JSON.parse(text(result)).state_code, 'TX');
+      const response = await post(url, initialize(1));
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('Mcp-Session-Id'), null);
+      assert.doesNotMatch(logs() + errors(), /phc_A+|\$mcp_parameters|\$mcp_response/);
+    });
+  });
+});
+
 test('hosted public tools are defined exactly as the stdio server defines them', async () => {
   const stdio = new Client({ name: 'stdio-contract-test', version: '0.0.0' });
   await stdio.connect(new StdioClientTransport({

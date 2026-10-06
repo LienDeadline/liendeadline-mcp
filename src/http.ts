@@ -10,7 +10,8 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { DEFAULT_BASE_URL } from "./api.js";
+import { DEFAULT_BASE_URL, VERSION } from "./api.js";
+import { createHostedAnalytics } from "./analytics.js";
 import { buildServer } from "./server.js";
 
 function envInt(name: string, fallback: number, min: number): number {
@@ -32,6 +33,7 @@ const RATE_LIMIT_WINDOW_MS = envInt("MCP_RATE_LIMIT_WINDOW_MS", 60_000, 1);
 // Proxies in front of this server that append the client address to X-Forwarded-For: 1 for
 // Cloud Run alone, 2 when a proxied Cloudflare hostname sits in front of it, 0 locally.
 const TRUST_PROXY_HOPS = envInt("MCP_TRUST_PROXY_HOPS", 0, 0);
+const analytics = createHostedAnalytics(VERSION);
 
 const MCP_PATH = "/mcp";
 // Cloud Run's front end answers paths ending in "z" itself, so /health is the externally reachable alias.
@@ -178,6 +180,15 @@ function readBody(req: IncomingMessage, limit: number): Promise<{ tooLarge: true
 /** One stateless MCP exchange: a fresh public-only server and transport for this request alone. */
 async function handleMcp(req: IncomingMessage, res: ServerResponse, message: unknown) {
   const server = buildServer({ includeCustomerTools: false, baseUrl: BASE_URL });
+  analytics?.instrument(server);
+  if (analytics) {
+    // The SDK otherwise adds a client/session correlation token to initialize responses.
+    // This endpoint remains stateless and intentionally does not expose that token.
+    const setHeader = res.setHeader;
+    res.setHeader = function (name, value) {
+      return name.toLowerCase() === "mcp-session-id" ? this : setHeader.call(this, name, value);
+    };
+  }
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   const release = () => {
     transport.close().catch(() => {});
@@ -304,7 +315,10 @@ httpServer.listen(PORT, HOST, () => {
 // Cloud Run sends SIGTERM before stopping an instance: finish in-flight requests, then exit.
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.once(signal, () => {
-    httpServer.close(() => process.exit(0));
+    httpServer.close(async () => {
+      await analytics?.shutdown();
+      process.exit(0);
+    });
     setTimeout(() => process.exit(0), 8_000).unref();
   });
 }

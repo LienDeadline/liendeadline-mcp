@@ -74,7 +74,7 @@ codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp
 
 ## Install
 
-Requires Node.js 22 or newer. The package runs locally over stdio and serves all five tools,
+Requires Node.js 22.22 or newer. The package runs locally over stdio and serves all five tools,
 including the customer tools. The package ships
 `npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io) as
@@ -223,8 +223,8 @@ request; the public tools work without a key.
 
 ## Privacy and data
 
-The server has no telemetry and stores nothing. Each tool call makes at most one HTTPS request
-to `https://secure-api-v1.liendeadline.com`:
+The local stdio server has no direct telemetry and stores nothing. Each tool call makes at most
+one HTTPS request to `https://secure-api-v1.liendeadline.com`:
 
 - `calculate_supplier_deadlines` sends the submitted project facts (state, delivery dates,
   project type, who hired the supplier and the review answers). The endpoint is stateless and
@@ -232,8 +232,13 @@ to `https://secure-api-v1.liendeadline.com`:
 - The guide tools send only the state code.
 - The customer tools send the invoice facts and the customer key as a Bearer header.
 
-The hosted endpoint makes the same requests on your behalf and stores nothing between requests.
-Its own log records only the HTTP method, status and latency of each request, never tool
+The API may count requests using aggregate operation, source, status and latency metadata.
+The hosted endpoint can also use PostHog MCP Analytics to count tool calls, errors and latency.
+It sends no tool arguments, results, intent, session identifiers, IP addresses or raw headers,
+and does not create person profiles. See [hosted analytics configuration](docs/HOSTED.md#posthog-analytics).
+
+The hosted endpoint makes the same API requests on your behalf and stores no project facts
+between requests. Its own log records only the HTTP method, status and latency of each request, never tool
 arguments; the hosting platform's request log also records the URL, client IP address and user
 agent.
 
