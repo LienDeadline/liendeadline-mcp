@@ -42,6 +42,7 @@ who hired you. LienDeadline turns your delivery dates into those deadlines and s
 - **Safe by design.** Every tool is read-only. Nothing sends notices, files liens or makes payments,
   and you need no account or API key.
 
+<a name="hosted-endpoint"></a>
 ## Quick start
 
 The hosted server needs no install, account or key:
@@ -190,6 +191,9 @@ LienDeadline is not a law firm and does not file anything on your behalf.
 - **Agent skill and plugins:** [LienDeadline/skills](https://github.com/LienDeadline/skills)
 - **Support:** [support@liendeadline.com](mailto:support@liendeadline.com) or
   [liendeadline.com/contact](https://liendeadline.com/contact)
+- **Terms of service:** [liendeadline.com/terms](https://liendeadline.com/terms)
+- **Privacy policy:** [liendeadline.com/privacy](https://liendeadline.com/privacy)
+- **Help center:** [liendeadline.com/help](https://liendeadline.com/help)
 - **Security:** report issues privately as described in
   [SECURITY.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/SECURITY.md)
 - **Contributing and development:** [CONTRIBUTING.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/CONTRIBUTING.md)

@@ -17,7 +17,7 @@
       ]
     }
   ],
-  "version": "0.5.1",
+  "version": "0.5.2",
   "remotes": [
     {
       "type": "streamable-http",
@@ -29,7 +29,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "liendeadline-mcp",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "transport": {
         "type": "stdio"
       },
