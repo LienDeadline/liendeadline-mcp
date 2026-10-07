@@ -4,6 +4,7 @@
  * With LIENDEADLINE_MCP_URL it drives that hosted Streamable HTTP endpoint instead, which must
  * serve exactly the public tools; no key is ever sent to it.
  */
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -18,7 +19,7 @@ const transport = hostedUrl
   ? new StreamableHTTPClientTransport(new URL(hostedUrl))
   : new StdioClientTransport({
     command: process.execPath,
-    args: [new URL("./index.js", import.meta.url).pathname],
+    args: [fileURLToPath(new URL("./index.js", import.meta.url))],
     env: {
       ...(customerKey ? { LIENDEADLINE_API_KEY: customerKey } : {}),
       ...(process.env.LIENDEADLINE_API_URL ? { LIENDEADLINE_API_URL: process.env.LIENDEADLINE_API_URL } : {}),
@@ -94,3 +95,4 @@ if (customerKey) {
 
 await client.close();
 console.log("\nOK");
+

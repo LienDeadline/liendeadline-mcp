@@ -1,8 +1,13 @@
 // Exercise the actual smoke orchestration with SDK doubles, never spawning an API caller.
 import { registerHooks } from 'node:module';
+import { fileURLToPath } from 'node:url';
+const expectedEntry = fileURLToPath(new URL('../src/index.js', import.meta.url));
 const transportModule = `
 export class StdioClientTransport {
   constructor(options) {
+    if (options.args?.length !== 1 || options.args[0] !== ${JSON.stringify(expectedEntry)}) {
+      throw new Error('Smoke child entry point must be a native filesystem path');
+    }
     const env = options.env;
     if (!env || env.LIENDEADLINE_API_KEY !== process.env.LIENDEADLINE_API_KEY ||
         env.LIENDEADLINE_API_URL !== process.env.LIENDEADLINE_API_URL ||
@@ -41,3 +46,4 @@ registerHooks({
   },
 });
 globalThis.fetch = async () => { throw new Error('Unexpected network call in smoke test'); };
+
