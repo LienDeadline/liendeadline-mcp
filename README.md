@@ -1,7 +1,7 @@
-<picture>
+<a href="https://liendeadline.com/mcp?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp"><picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/hero-dark.svg">
   <img alt="LienDeadline: mechanics lien and notice deadlines for AI assistants" src="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/hero-light.svg" width="100%">
-</picture>
+</picture></a>
 
 <p align="center">
   <a href="https://claude.ai/directory/connectors/liendeadline"><img alt="Listed in Claude's Connectors directory" src="https://img.shields.io/badge/Claude-Connectors_directory-D97757"></a>
@@ -13,7 +13,7 @@
 
 **Ask your AI assistant when your preliminary notice and mechanics lien deadlines fall, and get the statute behind every date.**
 This MCP server connects Claude, ChatGPT, Cursor, VS Code and any other MCP client to
-[LienDeadline](https://liendeadline.com), the deadline engine for US construction material suppliers.
+[LienDeadline](https://liendeadline.com/?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp), the deadline engine for US construction material suppliers.
 There is nothing to install: add one URL.
 
 <p align="center">
@@ -62,7 +62,7 @@ https://mcp.liendeadline.com/mcp
 | **Any MCP client** | Streamable HTTP at the URL above, no authentication. |
 
 Want your agent to ask the right questions too? The
-[LienDeadline agent skill](https://github.com/LienDeadline/skills) teaches it which facts to collect.
+[LienDeadline agent skill](https://liendeadline.com/agent-skill?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp) ([GitHub](https://github.com/LienDeadline/skills)) teaches it which facts to collect.
 The Claude Code plugin adds the skill and this server in one step:
 
 ```bash
@@ -187,8 +187,8 @@ LienDeadline is not a law firm and does not file anything on your behalf.
 
 ## Links
 
-- **Website:** [liendeadline.com](https://liendeadline.com)
-- **Agent skill and plugins:** [LienDeadline/skills](https://github.com/LienDeadline/skills)
+- **Website:** [liendeadline.com](https://liendeadline.com/?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp), with a [setup guide for this server](https://liendeadline.com/mcp?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp)
+- **Agent skill and plugins:** [liendeadline.com/agent-skill](https://liendeadline.com/agent-skill?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp) and [LienDeadline/skills](https://github.com/LienDeadline/skills)
 - **Support:** [support@liendeadline.com](mailto:support@liendeadline.com) or
   [liendeadline.com/contact](https://liendeadline.com/contact)
 - **Terms of service:** [liendeadline.com/terms](https://liendeadline.com/terms)
