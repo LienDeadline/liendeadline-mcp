@@ -75,14 +75,3 @@ These venues are one-time submissions and pick up later versions on their own:
 | punkpeye/awesome-mcp-servers | PR adding a line under Legal with the Glama badge | Bot checks the badge and emoji |
 | mcpservers.org, MCP Market | Web forms | Free queues take weeks |
 | Anthropic plugin directory, Cursor Marketplace | Submit the plugin in [LienDeadline/skills](https://github.com/LienDeadline/skills) | Local servers are listed as plugins |
-
-## Pending 0.5.0 release candidate
-
-The local candidate adds the two public supplier-v3 discovery/evaluation tools, bringing the
-hosted tool count to five and stdio to seven. It does not activate additional legal policies
-or prove hosted deployment. The OpenAI plugin metadata candidate is 1.0.1.
-
-The corresponding Skills plugin candidate is 1.4.0. Its local MCP package pin intentionally
-remains `liendeadline-mcp@0.4.2` until 0.5.0 is published and verified. After that release,
-update the Skills pins and validate the published package and hosted service separately.
-No release tag, package publication or hosted deployment is implied by these version edits.

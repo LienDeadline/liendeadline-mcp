@@ -200,12 +200,9 @@ This supports PostHog's [native MCP Analytics](https://posthog.com/docs/mcp-anal
 for tool volume, failures and latency. Unique users, retained sessions and intent analysis are
 not measured. `review_required` is a successful calculation result, not an MCP failure.
 
-The [MCP & Skills Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177568)
-compares native tool calls, API requests attributed to MCP/skills and skill-document requests.
-The [Product & API Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177569)
-shows public-page requests, API operations, outcomes and latency. Both use production events
-over 30 days. Source attribution is self-reported; document requests are not installs or runs.
-Data starts after the integration is released and runtime configuration is enabled.
+Usage dashboards live in the private PostHog project. They compare native tool calls, API
+requests attributed to MCP and skills, and skill-document requests, using production events.
+Source attribution is self-reported; document requests are not installs or runs.
 
 ## Upstream coordination
 

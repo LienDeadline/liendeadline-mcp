@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="660" viewBox="0 0 1280 660" role="img" aria-label="Example: a Florida supplier question and the two deadlines LienDeadline returns">
+  <rect x="1" y="1" width="1278" height="658" rx="28" fill="#F4F7F5" stroke="#DCE5E1" stroke-width="2"/>
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="64" y="70" font-size="16" font-weight="700" fill="#62736D" letter-spacing="1.5">YOU ASK</text>
+    <rect x="64" y="88" width="1152" height="118" rx="20" fill="#E9F0ED"/>
+    <text x="96" y="138" font-size="23" fill="#0E1F1A">We supplied a Florida commercial job for a subcontractor, Aug 3 to Sep 10, 2026.</text>
+    <text x="96" y="174" font-size="23" fill="#0E1F1A">No final payment, no termination. When are our notice and lien deadlines?</text>
+    <text x="64" y="262" font-size="16" font-weight="700" fill="#62736D" letter-spacing="1.5">LIENDEADLINE RETURNS</text>
+  <g transform="translate(64 286)">
+    <rect width="556" height="236" rx="20" fill="#FFFFFF" stroke="#DCE5E1" stroke-width="2"/>
+    <text x="32" y="48" font-size="15" font-weight="700" fill="#205E4E" letter-spacing="1.5">PRELIMINARY NOTICE</text>
+    <text x="32" y="86" font-size="25" font-weight="600" fill="#0E1F1A">Notice to Owner</text>
+    <text x="32" y="146" font-size="46" font-weight="700" fill="#0E1F1A" letter-spacing="-0.5">Sep 17, 2026</text>
+    <text x="32" y="196" font-size="19" fill="#3F504A">Fla. Stat. § 713.06(2)(a)</text>
+    <rect x="400" y="26" width="124" height="34" rx="17" fill="#DDF0E8"/>
+    <text x="462" y="49" font-size="16" font-weight="600" fill="#1B5B49" text-anchor="middle">Calculated</text>
+  </g>
+  <g transform="translate(660 286)">
+    <rect width="556" height="236" rx="20" fill="#FFFFFF" stroke="#DCE5E1" stroke-width="2"/>
+    <text x="32" y="48" font-size="15" font-weight="700" fill="#205E4E" letter-spacing="1.5">LIEN FILING</text>
+    <text x="32" y="86" font-size="25" font-weight="600" fill="#0E1F1A">Claim of lien</text>
+    <text x="32" y="146" font-size="46" font-weight="700" fill="#0E1F1A" letter-spacing="-0.5">Dec 9, 2026</text>
+    <text x="32" y="196" font-size="19" fill="#3F504A">Fla. Stat. § 713.08(5)</text>
+    <rect x="400" y="26" width="124" height="34" rx="17" fill="#DDF0E8"/>
+    <text x="462" y="49" font-size="16" font-weight="600" fill="#1B5B49" text-anchor="middle">Calculated</text>
+  </g>
+    <text x="64" y="574" font-size="20" fill="#3F504A">Missing a fact? You get “needs review” and the reason, never a guessed date.</text>
+    <text x="64" y="610" font-size="15" fill="#62736D">Real output from the hosted connector, October 2026. An educational baseline, not legal advice.</text>
+  </g>
+</svg>

@@ -1,7 +1,7 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.5.0",
-  "description": "MCP server for US mechanics lien and preliminary notice deadlines. Public supplier delivery-event baselines (available for Florida and Kansas private projects) and statute-cited lien guides for all 50 states plus DC.",
+  "version": "0.5.1",
+  "description": "MCP server for US mechanics lien and preliminary notice deadlines. Turns supplier delivery dates into statute-cited deadlines, flags what needs review instead of guessing, and serves lien guides for all 50 states and DC.",
   "type": "module",
   "bin": {
     "liendeadline-mcp": "dist/index.js"
@@ -26,15 +26,22 @@
   },
   "keywords": [
     "mcp",
+    "mcp-server",
     "model-context-protocol",
     "mechanics-lien",
-    "construction",
-    "deadlines",
     "lien",
+    "lien-deadlines",
     "preliminary-notice",
     "notice-to-owner",
+    "construction",
+    "construction-law",
+    "material-supplier",
     "supplier",
-    "mcp-server"
+    "deadlines",
+    "claude",
+    "chatgpt",
+    "cursor",
+    "ai-agents"
   ],
   "license": "MIT",
   "dependencies": {
