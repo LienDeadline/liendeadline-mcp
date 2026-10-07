@@ -11,8 +11,8 @@ pull requests are welcome.
 - **A deadline looks wrong:** email [support@liendeadline.com](mailto:support@liendeadline.com)
   with the state, project type, who hired you and the dates you entered. Leave out anything
   confidential.
-- **Security issues:** email [support@liendeadline.com](mailto:support@liendeadline.com) instead
-  of opening a public issue.
+- **Security issues:** report them privately as described in [SECURITY.md](SECURITY.md), never in
+  a public issue.
 
 Never include an API key, customer data or a config file that holds a key in an issue, pull
 request or log.

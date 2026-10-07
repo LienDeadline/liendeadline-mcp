@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://claude.ai/directory/connectors/liendeadline"><img alt="Listed in Claude's Connectors directory" src="https://img.shields.io/badge/Claude-Connectors_directory-D97757"></a>
-  <a href="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.LienDeadline%2Fliendeadline-mcp/versions/latest"><img alt="Listed in the official MCP Registry" src="https://img.shields.io/badge/MCP_Registry-listed-205E4E"></a>
+  <a href="https://registry.modelcontextprotocol.io/?q=liendeadline"><img alt="Listed in the official MCP Registry" src="https://img.shields.io/badge/MCP_Registry-listed-205E4E"></a>
   <a href="https://www.npmjs.com/package/liendeadline-mcp"><img alt="npm version" src="https://img.shields.io/npm/v/liendeadline-mcp?color=205E4E"></a>
   <a href="https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp"><img alt="Glama score" src="https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp/badges/score.svg"></a>
   <a href="https://github.com/LienDeadline/liendeadline-mcp/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
@@ -35,7 +35,7 @@ who hired you. LienDeadline turns your delivery dates into those deadlines and s
   and last delivery and a few yes, no or unknown questions.
 - **The statute behind every date.** Each deadline cites its source, so your team and your
   counsel can check it.
-- **Never a guessed date.** Missing facts, states that aren't released yet and public projects come
+- **Never a guessed date.** Missing facts, states that aren't covered yet and public projects come
   back as "needs review", with the reason.
 - **Lien guides for all 50 states and DC.** Rule summaries, deadline tables and common questions,
   with statute citations.
@@ -56,7 +56,7 @@ https://mcp.liendeadline.com/mcp
 | **Claude Code** | `claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp` |
 | **Cursor** | [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=liendeadline&config=eyJ1cmwiOiJodHRwczovL21jcC5saWVuZGVhZGxpbmUuY29tL21jcCJ9) |
 | **VS Code** | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_LienDeadline-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fmcp.liendeadline.com%252Fmcp%2522%257D) |
-| **ChatGPT** | In developer mode, add a custom connector with the URL above and no authentication. |
+| **ChatGPT** | Open **Plugins**, select **+** → **Add custom MCP server**, paste the URL above and choose **No authentication**. |
 | **Codex CLI** | `codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp` |
 | **Any MCP client** | Streamable HTTP at the URL above, no authentication. |
 
@@ -133,35 +133,31 @@ Try asking:
 | What | Where | Needs |
 | --- | --- | --- |
 | Calculated supplier deadlines | Florida and Kansas private projects | Nothing |
-| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the tools say the state isn't available yet. | Nothing |
+| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Nothing |
 | Lien guides | All 50 states and DC | Nothing |
 | Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
-When LienDeadline can't calculate a date, because of a public project, a state that isn't
-released, or a fact you don't know, it returns `review_required` with the reason instead of a date.
+When LienDeadline can't calculate a date, because of a public project, a state that isn't covered
+or a fact you don't know, it returns `review_required` with the reason instead of a date.
 
 ## How it works
 
-```mermaid
-flowchart LR
-  you["You"] --> ai["Claude, ChatGPT,<br/>Cursor, VS Code…"]
-  ai -- MCP --> mcp["LienDeadline MCP<br/>hosted or local"]
-  mcp -- HTTPS --> api["LienDeadline API"]
-  api -- "deadlines + statutes" --> mcp
-```
-
-The server checks that every answer echoes exactly the facts you sent, and reports any mismatch
-as an error, never as a date.
+1. You ask your AI assistant about a job.
+2. The assistant calls LienDeadline's tools over MCP with the state, the dates and your answers.
+3. LienDeadline applies that state's rules and returns each deadline with its statute, or
+   "needs review" with the reason.
+4. Before showing a supplier deadline, the server checks that the result echoes exactly the facts
+   you sent. A mismatch is reported as an error, never as a date.
 
 ## Tools
 
 | Tool | What it does | Key |
 | --- | --- | --- |
 | `calculate_supplier_deadlines` | Preliminary notice and lien filing deadlines from delivery dates and yes, no or unknown event answers | None |
-| `get_supplier_questions` | The questions, sources and rule versions that apply to a state and project (v3) | None |
-| `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` (v3) | None |
+| `get_supplier_questions` | Whether v3 covers a state, project type and hiring relationship, with its questions, sources and rule versions | None |
+| `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` | None |
 | `get_state_lien_guide` | One state's lien guide: rules, statute citations, deadline table and FAQs | None |
-| `list_state_lien_guides` | All 51 guides by code and title | None |
+| `list_state_lien_guides` | Every guide (50 states and DC) with its code, title and slug | None |
 | `calculate_lien_deadline` | Invoice-based deadlines (local server only) | Customer |
 | `list_supported_states` | Jurisdictions the invoice calculation accepts (local server only) | Customer |
 
@@ -194,5 +190,7 @@ LienDeadline is not a law firm and does not file anything on your behalf.
 - **Agent skill and plugins:** [LienDeadline/skills](https://github.com/LienDeadline/skills)
 - **Support:** [support@liendeadline.com](mailto:support@liendeadline.com) or
   [liendeadline.com/contact](https://liendeadline.com/contact)
+- **Security:** report issues privately as described in
+  [SECURITY.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/SECURITY.md)
 - **Contributing and development:** [CONTRIBUTING.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/CONTRIBUTING.md)
 - **License:** [MIT](https://github.com/LienDeadline/liendeadline-mcp/blob/main/LICENSE)
