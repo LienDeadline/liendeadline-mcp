@@ -19,8 +19,8 @@ deployed separately (see [docs/HOSTED.md](docs/HOSTED.md)).
 ## Cutting a release
 
 1. Bump the version in `package.json` (`npm version <x.y.z> --no-git-tag-version`),
-   `server.json` (top-level and package entry), `manifest.json` and `VERSION` in
-   `src/api.ts`. `npm test` fails until they all match.
+   `server.json` (top-level and package entry), `manifest.json`, `well-known/mcp.json`,
+   `npm-shrinkwrap.json` (top-level and root package entry) and `VERSION` in `src/api.ts`. `npm test` fails until they all match.
 2. Update the pinned `liendeadline-mcp@<version>` in
    [LienDeadline/skills](https://github.com/LienDeadline/skills) after the release is live.
 3. Merge to `main`, then tag the merge commit and push the tag:

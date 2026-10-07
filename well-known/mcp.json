@@ -1,15 +1,49 @@
 {
-  "serverInfo": { "name": "LienDeadline", "version": "0.4.2" },
-  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Public supplier delivery-event baselines (reviewed for Florida and Kansas private projects) and editorial state lien guides with statute citations for all 50 states plus DC.",
-  "capabilities": { "tools": true },
+  "serverInfo": {
+    "name": "LienDeadline",
+    "version": "0.5.1"
+  },
+  "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Public supplier delivery-event baselines (available for Florida and Kansas private projects) and editorial state lien guides with statute citations for all 50 states plus DC.",
+  "capabilities": {
+    "tools": true
+  },
   "tools": [
-    { "name": "calculate_supplier_deadlines", "description": "Supplier notice and lien filing baselines from delivery events. Public, no key." },
-    { "name": "get_state_lien_guide", "description": "Editorial guide for one state, including statute citations. Public, no key." },
-    { "name": "list_state_lien_guides", "description": "Every available state guide by code and title. Public, no key." },
-    { "name": "calculate_lien_deadline", "description": "Customer API: deadlines for one invoice. Requires LIENDEADLINE_API_KEY." },
-    { "name": "list_supported_states", "description": "Customer API: jurisdictions the invoice calculation accepts. Requires LIENDEADLINE_API_KEY." }
+    {
+      "name": "calculate_supplier_deadlines",
+      "description": "Supplier notice and lien filing baselines from delivery events. Public, no key."
+    },
+    {
+      "name": "get_supplier_questions",
+      "description": "Current supplier scope support, questions and source identities. Public, no key."
+    },
+    {
+      "name": "calculate_supplier_deadlines_v3",
+      "description": "Supplier results from discovered event facts and exact rule identities. Public, no key."
+    },
+    {
+      "name": "get_state_lien_guide",
+      "description": "Editorial guide for one state, including statute citations. Public, no key."
+    },
+    {
+      "name": "list_state_lien_guides",
+      "description": "Every available state guide by code and title. Public, no key."
+    },
+    {
+      "name": "calculate_lien_deadline",
+      "description": "Customer API: deadlines for one invoice. Requires LIENDEADLINE_API_KEY."
+    },
+    {
+      "name": "list_supported_states",
+      "description": "Customer API: jurisdictions the invoice calculation accepts. Requires LIENDEADLINE_API_KEY."
+    }
   ],
-  "packages": [{ "registry": "npm", "identifier": "liendeadline-mcp", "transport": "stdio" }],
+  "packages": [
+    {
+      "registry": "npm",
+      "identifier": "liendeadline-mcp",
+      "transport": "stdio"
+    }
+  ],
   "documentation": "https://liendeadline.com/api",
   "repository": "https://github.com/LienDeadline/liendeadline-mcp"
 }

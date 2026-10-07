@@ -24,8 +24,10 @@ Cloud Run's front end answers [paths ending in `z`](https://cloud.google.com/run
 itself, so external checks against a Cloud Run URL must use `/health`. `/healthz` answers locally,
 in Docker and behind other hosts.
 
-Only the three public, keyless tools are registered: `calculate_supplier_deadlines`
-(`supplier-events-v2`), `get_state_lien_guide` and `list_state_lien_guides`. They are defined by
+Only the five public, keyless tools are registered: `calculate_supplier_deadlines`
+(`supplier-events-v2`), `get_supplier_questions`, `calculate_supplier_deadlines_v3`,
+`get_state_lien_guide` and `list_state_lien_guides`. The additive v3 tools depend on a
+promoted canonical source; their presence does not claim additional live date coverage. They are defined by
 the same `buildServer()` as the stdio server, so titles, descriptions, schemas and annotations
 match. Hosted mode never registers `calculate_lien_deadline` or `list_supported_states`, never
 uses `LIENDEADLINE_API_KEY` (if it is set, the server logs a warning and ignores it) and sends no
@@ -146,7 +148,7 @@ public repository and the Cloud Build upload.
    LIENDEADLINE_RUN_LIVE_SMOKE=1 LIENDEADLINE_MCP_URL=https://mcp.liendeadline.com/mcp npm run smoke
    ```
 
-   The smoke requires exactly the three public tools, then runs the Florida supplier call with
+   The smoke requires exactly the five public tools, then runs the Florida supplier call with
    explicit `no` answers, a guide fetch and an error path.
 
    To confirm the rate-limit key, send 125 `initialize` requests within a minute, with a
@@ -198,12 +200,9 @@ This supports PostHog's [native MCP Analytics](https://posthog.com/docs/mcp-anal
 for tool volume, failures and latency. Unique users, retained sessions and intent analysis are
 not measured. `review_required` is a successful calculation result, not an MCP failure.
 
-The [MCP & Skills Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177568)
-compares native tool calls, API requests attributed to MCP/skills and skill-document requests.
-The [Product & API Usage dashboard](https://us.posthog.com/project/649192/dashboard/2177569)
-shows public-page requests, API operations, outcomes and latency. Both use production events
-over 30 days. Source attribution is self-reported; document requests are not installs or runs.
-Data starts after the integration is released and runtime configuration is enabled.
+Usage dashboards live in the private PostHog project. They compare native tool calls, API
+requests attributed to MCP and skills, and skill-document requests, using production events.
+Source attribution is self-reported; document requests are not installs or runs.
 
 ## Upstream coordination
 
@@ -227,7 +226,7 @@ URL in place. The registry requires a publicly reachable URL, so keep the endpoi
 each release.
 
 Directory submissions are separate: the claude.ai Connectors directory, the ChatGPT/Codex app
-directory, Smithery by URL (close #7 once its scan lists the three tools) and remote-only lists.
+directory, Smithery by URL (close #7 once its scan lists the five public tools) and remote-only lists.
 Use `support@liendeadline.com` as the contact, and keep submission text coverage-neutral.
 
 OpenAI verifies the endpoint's domain before review. Set the token it issues as

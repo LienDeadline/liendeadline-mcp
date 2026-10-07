@@ -1,3 +1,4 @@
+import { input as v3Input } from "./supplier-v3-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
@@ -36,7 +37,7 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
   await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map(t => t.name), [
-      'calculate_supplier_deadlines', 'calculate_lien_deadline', 'list_supported_states',
+      'calculate_supplier_deadlines', 'get_supplier_questions', 'calculate_supplier_deadlines_v3', 'calculate_lien_deadline', 'list_supported_states',
       'get_state_lien_guide', 'list_state_lien_guides',
     ]);
     assert.match(client.getInstructions(), /calculate_lien_deadline and list_supported_states are customer API tools that need LIENDEADLINE_API_KEY/);
@@ -109,6 +110,18 @@ test('actual stdio supplier tool keeps unknown events under review without a key
     assert.equal(body.preliminary_notice.deadline, null);
     assert.equal(body.lien_filing.deadline, null);
     assert.deepEqual(body.inputs, { contract_version: 'supplier-events-v2', ...facts });
+  });
+});
+
+test('actual stdio v3 discovery and calculation preserve identities without credentials', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+    const discovered = await client.callTool({name: 'get_supplier_questions', arguments: {state: 'TX', project_type: 'commercial', hired_by: 'contractor'}});
+    assert.notEqual(discovered.isError, true);
+    assert.equal(JSON.parse(text(discovered)).scope_status, 'supported');
+    const {contract_version, role, ...args} = v3Input;
+    const calculated = await client.callTool({name: 'calculate_supplier_deadlines_v3', arguments: args});
+    assert.notEqual(calculated.isError, true);
+    assert.deepEqual(JSON.parse(text(calculated)).inputs, v3Input);
   });
 });
 

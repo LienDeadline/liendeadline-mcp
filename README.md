@@ -1,272 +1,196 @@
-# liendeadline-mcp
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/hero-dark.svg">
+  <img alt="LienDeadline: mechanics lien and notice deadlines for AI assistants" src="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/hero-light.svg" width="100%">
+</picture>
 
-[![npm](https://img.shields.io/npm/v/liendeadline-mcp)](https://www.npmjs.com/package/liendeadline-mcp)
-[![LienDeadline/liendeadline-mcp MCP server](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp/badges/score.svg)](https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+<p align="center">
+  <a href="https://claude.ai/directory/connectors/liendeadline"><img alt="Listed in Claude's Connectors directory" src="https://img.shields.io/badge/Claude-Connectors_directory-D97757"></a>
+  <a href="https://registry.modelcontextprotocol.io/?q=liendeadline"><img alt="Listed in the official MCP Registry" src="https://img.shields.io/badge/MCP_Registry-listed-205E4E"></a>
+  <a href="https://www.npmjs.com/package/liendeadline-mcp"><img alt="npm version" src="https://img.shields.io/npm/v/liendeadline-mcp?color=205E4E"></a>
+  <a href="https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp"><img alt="Glama score" src="https://glama.ai/mcp/servers/LienDeadline/liendeadline-mcp/badges/score.svg"></a>
+  <a href="https://github.com/LienDeadline/liendeadline-mcp/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
 
-MCP server for US mechanics lien and preliminary notice deadlines, built on the
-[LienDeadline](https://liendeadline.com) API.
+**Ask your AI assistant when your preliminary notice and mechanics lien deadlines fall, and get the statute behind every date.**
+This MCP server connects Claude, ChatGPT, Cursor, VS Code and any other MCP client to
+[LienDeadline](https://liendeadline.com), the deadline engine for US construction material suppliers.
+There is nothing to install: add one URL.
 
-Give it a supplier's delivery dates and project facts, and it returns the preliminary notice and
-lien filing deadlines with their statute sources and warnings.
+<p align="center">
+  <a href="#quick-start"><b>Quick start</b></a> ·
+  <a href="#what-you-can-ask">What you can ask</a> ·
+  <a href="#coverage">Coverage</a> ·
+  <a href="#tools">Tools</a> ·
+  <a href="#privacy-and-safety">Privacy</a> ·
+  <a href="https://liendeadline.com">liendeadline.com</a>
+</p>
 
-## Coverage
+## Why LienDeadline
 
-- **Lien guides:** all 50 states and DC. No key needed.
-- **Calculated supplier deadlines:** Florida and Kansas private projects, the states whose
-  supplier rules have been reviewed so far. No key needed. For other states, public projects, or
-  when a relevant Florida payment/termination or Kansas extension answer is missing or unknown,
-  the affected deadline is `review_required` (needs legal review) instead of a guessed date.
-- **Customer invoice calculation:** 51 jurisdictions, with a LienDeadline customer API key.
+Miss a preliminary notice or a lien filing deadline and a supplier can lose its lien rights on the
+job, and with them the leverage to get paid. The rules change with the state, the project type and
+who hired you. LienDeadline turns your delivery dates into those deadlines and shows its work.
 
-## Tools
+- **Deadlines from delivery dates.** Preliminary notice and lien filing deadlines from your first
+  and last delivery and a few yes, no or unknown questions.
+- **The statute behind every date.** Each deadline cites its source, so your team and your
+  counsel can check it.
+- **Never a guessed date.** Missing facts, states that aren't covered yet and public projects come
+  back as "needs review", with the reason.
+- **Lien guides for all 50 states and DC.** Rule summaries, deadline tables and common questions,
+  with statute citations.
+- **Safe by design.** Every tool is read-only. Nothing sends notices, files liens or makes payments,
+  and you need no account or API key.
 
-| Tool | Key | What it does |
-| --- | --- | --- |
-| `calculate_supplier_deadlines` | none | Supplier notice and lien filing baselines from explicit delivery-event answers (`supplier-events-v2`) |
-| `get_state_lien_guide` | none | Editorial guide for one state or DC: rule summary, statute citations, deadline table, FAQs |
-| `list_state_lien_guides` | none | Every available guide, by code and title |
-| `calculate_lien_deadline` | customer | Customer API: deadlines for one invoice from its invoice date and state |
-| `list_supported_states` | customer | Customer API: jurisdictions the invoice calculation accepts |
+## Quick start
 
-Every tool is read-only: none of them sends notices, files liens or makes payments.
+The hosted server needs no install, account or key:
 
-## Hosted endpoint
+```
+https://mcp.liendeadline.com/mcp
+```
 
-The public tools are also served over MCP Streamable HTTP at `https://mcp.liendeadline.com/mcp`,
-with nothing to install and no key: `calculate_supplier_deadlines`, `get_state_lien_guide` and
-`list_state_lien_guides`. The customer tools run only in the local package below.
+| Client | How to add it |
+| --- | --- |
+| **Claude** (web, desktop, mobile) | Open [LienDeadline in Claude's Connectors directory](https://claude.ai/directory/connectors/liendeadline) and connect it. |
+| **Claude Code** | `claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp` |
+| **Cursor** | [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=liendeadline&config=eyJ1cmwiOiJodHRwczovL21jcC5saWVuZGVhZGxpbmUuY29tL21jcCJ9) |
+| **VS Code** | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_LienDeadline-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fmcp.liendeadline.com%252Fmcp%2522%257D) |
+| **ChatGPT** | Open **Plugins**, select **+** → **Add custom MCP server**, paste the URL above and choose **No authentication**. |
+| **Codex CLI** | `codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp` |
+| **Any MCP client** | Streamable HTTP at the URL above, no authentication. |
 
-Claude Code:
+Want your agent to ask the right questions too? The
+[LienDeadline agent skill](https://github.com/LienDeadline/skills) teaches it which facts to collect.
+The Claude Code plugin adds the skill and this server in one step:
 
 ```bash
-claude mcp add --transport http liendeadline https://mcp.liendeadline.com/mcp
+claude plugin marketplace add LienDeadline/skills
+claude plugin install liendeadline@liendeadline
 ```
 
-Claude on the web or desktop: add it as a custom connector under Settings → Connectors, with the
-URL above.
+<details>
+<summary><b>Run it locally instead (npm, stdio)</b></summary>
 
-VS Code (`.vscode/mcp.json`):
+The local server needs Node.js 22.22 or newer and serves every tool, including the two
+[customer API tools](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md). It ships `npm-shrinkwrap.json`, so `npx` installs the
+exact dependency versions each release was tested with.
 
-```json
-{
-  "servers": {
-    "liendeadline": { "type": "http", "url": "https://mcp.liendeadline.com/mcp" }
-  }
-}
-```
-
-Cursor and other clients that use an `mcpServers` JSON config:
-
-```json
-{
-  "mcpServers": {
-    "liendeadline": { "url": "https://mcp.liendeadline.com/mcp" }
-  }
-}
-```
-
-OpenAI Codex CLI:
-
-```bash
-codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp
-```
-
-## Install
-
-Requires Node.js 22.22 or newer. The package runs locally over stdio and serves all five tools,
-including the customer tools. The package ships
-`npm-shrinkwrap.json`, so `npx` installs the exact dependency versions each release was tested with. It is listed in the
-[official MCP Registry](https://registry.modelcontextprotocol.io) as
-`io.github.LienDeadline/liendeadline-mcp`.
-
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=liendeadline&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImxpZW5kZWFkbGluZS1tY3AiXX0=)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522-y%2522%252C%2522liendeadline-mcp%2522%255D%257D)
-
-Claude Desktop: download `liendeadline-mcp-<version>.mcpb` from the
+**Claude Desktop:** download `liendeadline-mcp-<version>.mcpb` from the
 [latest release](https://github.com/LienDeadline/liendeadline-mcp/releases/latest) and open it.
 
-Claude Code:
+**Claude Code:**
 
 ```bash
 claude mcp add liendeadline -- npx -y liendeadline-mcp
 ```
 
-Claude Desktop, Cursor, Windsurf and other clients that use an `mcpServers` JSON config:
-
-```json
-{
-  "mcpServers": {
-    "liendeadline": {
-      "command": "npx",
-      "args": ["-y", "liendeadline-mcp"]
-    }
-  }
-}
-```
-
-VS Code (`.vscode/mcp.json`):
-
-```json
-{
-  "servers": {
-    "liendeadline": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "liendeadline-mcp"]
-    }
-  }
-}
-```
-
-OpenAI Codex CLI:
+**Codex CLI:**
 
 ```bash
 codex mcp add liendeadline -- npx -y liendeadline-mcp
 ```
 
-For agent instructions that pair with these tools, see the
-[LienDeadline agent skill](https://github.com/LienDeadline/skills), which is also packaged as a
-Claude Code plugin that installs this server.
-
-## Example
-
-`calculate_supplier_deadlines` with a Florida commercial project where a subcontractor ordered
-the materials, deliveries ran from 2026-08-03 to 2026-09-10, and the owner confirms neither
-final payment nor termination occurred:
-
-```json
-{
-  "state": "FL",
-  "first_delivery_date": "2026-08-03",
-  "last_delivery_date": "2026-09-10",
-  "project_type": "commercial",
-  "hired_by": "subcontractor",
-  "deliveries_complete": true,
-  "florida_final_payment_status": "no",
-  "florida_termination_status": "no"
-}
-```
-
-returns, abbreviated:
-
-```json
-{
-  "contract_version": "supplier-events-v2",
-  "status": "calculated",
-  "state_code": "FL",
-  "preliminary_notice": { "name": "Notice to Owner", "deadline": "2026-09-17", "status": "calculated" },
-  "lien_filing": { "name": "Claim of lien", "deadline": "2026-12-09", "status": "calculated" },
-  "statute_citations": ["Fla. Stat. § 713.06(2)(a)", "Fla. Stat. § 713.08(5)"],
-  "disclaimer": "This is an educational baseline, not legal advice ..."
-}
-```
-
-The same facts with both Florida answers omitted return `"status": "review_required"` and
-no dates. An unknown final-payment answer holds the notice date; an unknown termination answer
-holds the lien date. For Kansas, `kansas_extension_status: "no"` permits the ordinary lien
-baseline, while `"yes"`, `"unknown"`, or omission requires review and yields no lien date.
-Supply a Florida event date only with the matching `"yes"` answer. A blanket
-`special_events_reviewed` flag is not accepted. Texas and public projects also need review.
-Ongoing deliveries return `awaiting_final_delivery` for the lien date when other facts permit it.
-The server checks that the result echoes exactly what was submitted and that unresolved events
-have no affected date; a mismatch is reported as an error, not as dates.
-
-## Customer API key (optional)
-
-Only `calculate_lien_deadline` and `list_supported_states` need a key. Request API access
-through [support@liendeadline.com](mailto:support@liendeadline.com) or
-[liendeadline.com/contact](https://liendeadline.com/contact); keys are issued through the approved
-issuance process, not self-service. `calculate_lien_deadline` needs
-`deadline:calculate`; `list_supported_states` needs `states:read`. Set `LIENDEADLINE_API_KEY`
-in the MCP process environment using your local secret launcher. A browser session,
-QuickBooks/Procore token or legacy API key is not a customer credential. Rotation or
-revocation requires replacing the key and restarting the MCP process.
-
-In a JSON config, the key goes in the server's `env` block:
+**Cursor, Windsurf and other `mcpServers` clients:**
 
 ```json
 {
   "mcpServers": {
-    "liendeadline": {
-      "command": "npx",
-      "args": ["-y", "liendeadline-mcp"],
-      "env": { "LIENDEADLINE_API_KEY": "REPLACE_WITH_DEDICATED_CUSTOMER_KEY" }
-    }
+    "liendeadline": { "command": "npx", "args": ["-y", "liendeadline-mcp"] }
   }
 }
 ```
 
-The placeholder above is not a credential. Protect a configuration containing a real key as a
-secret; do not commit, share or include it in support logs. Keys must never appear in URLs,
-tool arguments or browser storage. Missing or malformed keys fail locally before an HTTP
-request; the public tools work without a key.
+**VS Code** (`.vscode/mcp.json`):
 
-## Notes
+```json
+{
+  "servers": {
+    "liendeadline": { "type": "stdio", "command": "npx", "args": ["-y", "liendeadline-mcp"] }
+  }
+}
+```
 
-- **Responses are trimmed.** A state guide is ~16 KB of which roughly 7 KB is rendered HTML;
-  it is collapsed to the structured fields, which takes it to ~4,300 characters. The customer
-  calculate endpoint returns the same object three times and is collapsed to one.
-- **Guides are not calculations.** Guide day counts are editorial summaries. Filing dates come
-  only from `calculate_supplier_deadlines`; anything it does not calculate needs qualified
-  review.
-- **API origin:** customer tools send `Authorization: Bearer <key>` only to
-  `https://secure-api-v1.liendeadline.com`, using `POST /api/v1/calculate-deadline` and
-  `GET /api/v1/supported-states`. There is no anonymous demo fallback. `LIENDEADLINE_API_URL`
-  accepts a bare HTTP(S) origin for the public tools; customer tools reject every other origin,
-  including staging, alternate ports and insecure HTTP. URL credentials, paths, queries and
-  fragments are rejected. All requests reject redirects. Public tools never send credentials.
-- **Denials:** `401` means check expiry/rotation/revocation, `403` means check endpoint scope
-  and current account access, `429` means retry later, and `503` means the customer API is
-  unavailable. Tools return an MCP error with a safe message; denial bodies and network
-  exception details are not echoed.
+</details>
 
-## Privacy and data
+## What you can ask
 
-The local stdio server has no direct telemetry and stores nothing. Each tool call makes at most
-one HTTPS request to `https://secure-api-v1.liendeadline.com`:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/example-dark.svg">
+  <img alt="A Florida supplier asks for its deadlines; LienDeadline returns the Notice to Owner deadline, Sep 17, 2026, under Fla. Stat. § 713.06(2)(a), and the claim of lien deadline, Dec 9, 2026, under Fla. Stat. § 713.08(5)" src="https://raw.githubusercontent.com/LienDeadline/liendeadline-mcp/main/assets/readme/example-light.svg" width="100%">
+</picture>
 
-- `calculate_supplier_deadlines` sends the submitted project facts (state, delivery dates,
-  project type, who hired the supplier and the review answers). The endpoint is stateless and
-  does not save them.
-- The guide tools send only the state code.
-- The customer tools send the invoice facts and the customer key as a Bearer header.
+Try asking:
 
-The API may count requests using aggregate operation, source, status and latency metadata.
-The hosted endpoint can also use PostHog MCP Analytics to count tool calls, errors and latency.
-It sends no tool arguments, results, intent, session identifiers, IP addresses or raw headers,
-and does not create person profiles. See [hosted analytics configuration](docs/HOSTED.md#posthog-analytics).
+- "We delivered to a Florida commercial job for a subcontractor from Aug 3 to Sep 10, 2026. No
+  final payment, no termination. When are our notice and lien deadlines?"
+- "Same job, but I don't know whether the owner made final payment. What can you tell me?"
+- "Walk me through Texas mechanics lien rules for a material supplier and cite the statutes."
+- "Which states do you have lien guides for? Show me Georgia's."
 
-The hosted endpoint makes the same API requests on your behalf and stores no project facts
-between requests. Its own log records only the HTTP method, status and latency of each request, never tool
-arguments; the hosting platform's request log also records the URL, client IP address and user
-agent.
+## Coverage
 
-LienDeadline's [privacy policy](https://liendeadline.com/privacy) covers the API.
+| What | Where | Needs |
+| --- | --- | --- |
+| Calculated supplier deadlines | Florida and Kansas private projects | Nothing |
+| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Nothing |
+| Lien guides | All 50 states and DC | Nothing |
+| Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
-## Development
+When LienDeadline can't calculate a date, because of a public project, a state that isn't covered
+or a fact you don't know, it returns `review_required` with the reason instead of a date.
 
-With Node 22.23 or newer, run `npm ci --ignore-scripts`, `npm run typecheck`, and `npm test`.
-Tests use synthetic credentials and mocked HTTP without API/provider access. Hosted CI also
-compiles the package. Pull requests and scheduled checks do not call the live API or require
-secrets.
+## How it works
 
-`npm run smoke` is an explicit live stdio check against the production API. It requires
-`LIENDEADLINE_RUN_LIVE_SMOKE=1`, runs the public tools, and runs the customer tools only when
-`LIENDEADLINE_API_KEY` is also set. Do not use a real customer key for routine CI or unapproved
-live acceptance. Releases follow [RELEASING.md](RELEASING.md).
+1. You ask your AI assistant about a job.
+2. The assistant calls LienDeadline's tools over MCP with the state, the dates and your answers.
+3. LienDeadline applies that state's rules and returns each deadline with its statute, or
+   "needs review" with the reason.
+4. Before showing a supplier deadline, the server checks that the result echoes exactly the facts
+   you sent. A mismatch is reported as an error, never as a date.
 
-`npm run start:http` runs the hosted Streamable HTTP server (`POST /mcp`), which serves only the
-public tools; [docs/HOSTED.md](docs/HOSTED.md) covers its limits and deployment. With
-`LIENDEADLINE_MCP_URL` set, `npm run smoke` checks that endpoint instead of launching the stdio
-server and requires exactly the public tools.
+## Tools
+
+| Tool | What it does | Key |
+| --- | --- | --- |
+| `calculate_supplier_deadlines` | Preliminary notice and lien filing deadlines from delivery dates and yes, no or unknown event answers | None |
+| `get_supplier_questions` | Whether v3 covers a state, project type and hiring relationship, with its questions, sources and rule versions | None |
+| `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` | None |
+| `get_state_lien_guide` | One state's lien guide: rules, statute citations, deadline table and FAQs | None |
+| `list_state_lien_guides` | Every guide (50 states and DC) with its code, title and slug | None |
+| `calculate_lien_deadline` | Invoice-based deadlines (local server only) | Customer |
+| `list_supported_states` | Jurisdictions the invoice calculation accepts (local server only) | Customer |
+
+Inputs, outputs and statuses are in the [tool reference](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/TOOLS.md).
+
+## Privacy and safety
+
+- **No account, no key.** The public tools work anonymously, and nothing is stored between
+  requests.
+- **What's sent.** The facts you give (state, dates, project type, who hired you and your yes, no
+  or unknown answers) go to the LienDeadline API to calculate. Guide lookups send only a state code.
+- **Hosted server.** Its logs record the method, status and response time of each request, never
+  your inputs. Google Cloud's own request log also records
+  the URL, client IP address and user agent. The
+  server may count usage anonymously in PostHog: tool name, success, duration and client family,
+  with no inputs, results or IP addresses.
+- **Local server.** It has no telemetry of its own.
+
+Details: [LienDeadline privacy policy](https://liendeadline.com/privacy).
 
 ## Not legal advice
 
-Results are calculated baselines from published state rules. Statutes change and facts vary
-between projects. Verify critical deadlines with counsel before relying on them. This is not a
-law firm and does not file anything on your behalf.
+Results are educational baselines calculated from published state rules. Statutes change and
+every project is different, so verify critical deadlines with counsel before relying on them.
+LienDeadline is not a law firm and does not file anything on your behalf.
 
-## Licence
+## Links
 
-MIT
+- **Website:** [liendeadline.com](https://liendeadline.com)
+- **Agent skill and plugins:** [LienDeadline/skills](https://github.com/LienDeadline/skills)
+- **Support:** [support@liendeadline.com](mailto:support@liendeadline.com) or
+  [liendeadline.com/contact](https://liendeadline.com/contact)
+- **Security:** report issues privately as described in
+  [SECURITY.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/SECURITY.md)
+- **Contributing and development:** [CONTRIBUTING.md](https://github.com/LienDeadline/liendeadline-mcp/blob/main/CONTRIBUTING.md)
+- **License:** [MIT](https://github.com/LienDeadline/liendeadline-mcp/blob/main/LICENSE)

@@ -6,7 +6,7 @@ import { PostHog, type PostHogOptions } from "posthog-node";
 const HOSTS = new Set(["https://us.i.posthog.com", "https://eu.i.posthog.com"]);
 const ENVIRONMENTS = new Set(["production", "staging", "local", "test"]);
 const EVENTS = new Set(["$mcp_tool_call", "$mcp_initialize", "$mcp_tools_list"]);
-const TOOLS = new Set(["calculate_supplier_deadlines", "get_state_lien_guide", "list_state_lien_guides"]);
+const TOOLS = new Set(["calculate_supplier_deadlines", "get_supplier_questions", "calculate_supplier_deadlines_v3", "get_state_lien_guide", "list_state_lien_guides"]);
 const ERROR_TYPES = new Set(["validation", "tool", "handler", "timeout", "cancelled", "unknown"]);
 
 function clientBucket(value: unknown): string {

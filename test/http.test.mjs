@@ -12,7 +12,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`; // Synthetic only.
 const MOCK = fileURLToPath(new URL('./mock-runtime.mjs', import.meta.url));
 const source = file => fileURLToPath(new URL(`../src/${file}`, import.meta.url));
-const PUBLIC_TOOLS = ['calculate_supplier_deadlines', 'get_state_lien_guide', 'list_state_lien_guides'];
+const PUBLIC_TOOLS = ['calculate_supplier_deadlines', 'get_supplier_questions', 'calculate_supplier_deadlines_v3', 'get_state_lien_guide', 'list_state_lien_guides'];
 const SUPPLIER_ARGS = {
   state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
   project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,
@@ -72,7 +72,7 @@ const initialize = id => JSON.stringify({
 });
 const post = (url, body, headers = {}) => fetch(url, { method: 'POST', headers: { ...MCP_HEADERS, ...headers }, body });
 
-test('hosted initialize and tools/list over HTTP return exactly the three public tools', async () => {
+test('hosted initialize and tools/list over HTTP return exactly the five public tools', async () => {
   await withHostedServer({}, async url => {
     await withClient(url, async client => {
       assert.equal(client.getServerVersion().name, 'liendeadline');
@@ -343,7 +343,7 @@ test('live smoke can drive a hosted endpoint, expects only public tools and forw
     child.stderr.on('data', data => { stderr += data; });
     const [code] = await once(child, 'exit');
     assert.equal(code, 0, stderr);
-    assert.match(stdout, /tools: 3/);
+    assert.match(stdout, /tools: 5/);
     assert.match(stdout, /status=calculated notice=2026-09-17 lien=2026-12-09/);
     assert.match(stdout, /customer tools skipped: the hosted endpoint serves only the public tools/);
     assert.equal(stdout.includes(KEY), false);
