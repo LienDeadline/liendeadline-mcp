@@ -172,6 +172,19 @@ must pass health, MCP tool discovery, representative tool calls and CORS checks 
 named revision receives traffic. Promotion also requires the tested commit to remain current
 `main`. A failed candidate leaves the serving revision in place.
 
+GitHub doesn't retry a failed webhook delivery, so a push that Cloud Build rejects (for example
+with a `503`) leaves the endpoint on the previous version without any error. The
+[hosted-drift workflow](../.github/workflows/hosted-drift.yml) checks for this every three hours
+and on demand. It reads `version` from `package.json` on `main`, sends an MCP `initialize` to
+`https://mcp.liendeadline.com/mcp` and compares `result.serverInfo.version`. When the versions
+differ and the newest `main` commit is more than 45 minutes old, the run fails with both versions
+and the `main` SHA. A request that fails twice, 30 seconds apart, also fails the run. GitHub's
+failed-run email is the alert. The workflow uses no secrets and has read-only repository access.
+
+The check compares version numbers, so it catches a missed deploy of a release commit, not of a
+`main` change that keeps the version. When it fails, the operator re-runs the build for current
+`main` through the private operations procedure, then confirms that the next run passes.
+
 ## PostHog analytics
 
 Analytics is disabled unless all four values are set:

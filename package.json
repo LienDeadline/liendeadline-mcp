@@ -1,6 +1,6 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "MCP server for US mechanics lien and preliminary notice deadlines. Turns supplier delivery dates into statute-cited deadlines, flags what needs review instead of guessing, and serves lien guides for all 50 states and DC.",
   "type": "module",
   "bin": {

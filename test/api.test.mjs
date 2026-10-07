@@ -79,6 +79,24 @@ test('guide tools stay public without credential headers, including alternate or
   }
 });
 
+for (const status of [400, 422]) {
+  test(`guide validation failure ${status} gives a state-code hint, not the invoice hint`, async () => {
+    for (const call of [() => getStateGuide(DEFAULT_BASE_URL, 'T1'), () => listStateGuides(DEFAULT_BASE_URL)]) {
+      mock({ detail: 'bad' }, status);
+      await assert.rejects(call, error => {
+        assert.equal(error.message, `LienDeadline API returned ${status}. Check that state is a two-letter US state or DC code.`);
+        assert.doesNotMatch(error.message, /invoice_date/);
+        return true;
+      });
+    }
+  });
+}
+
+test('invoice validation failure keeps the invoice hint', async () => {
+  mock({ detail: 'bad' }, 422);
+  await rejectsSafely(() => calculateDeadline(DEFAULT_BASE_URL, input, KEY), /returned 422\. Check that state is a supported two-letter US code and invoice_date is YYYY-MM-DD\./);
+});
+
 for (const status of [401, 403, 429, 503]) {
   test(`denial ${status} preserves status and never exposes response secrets`, async () => {
     mock({ detail: KEY }, status);
@@ -109,6 +127,16 @@ test('calculation response retains the prior trimmed contract', async () => {
   assert.deepEqual(result.warnings, ['Reviewed']);
   assert.equal(result.notes, 'Statutory projection');
   assert.equal(Object.hasOwn(result, 'unused'), false);
+});
+
+test('calculation fills omitted fields as the tool description states', async () => {
+  mock({ state: 'TX', invoice_date: input.invoice_date });
+  const result = await calculateDeadline(DEFAULT_BASE_URL, input, KEY);
+  for (const field of ['project_type', 'preliminary_notice_deadline', 'lien_deadline', 'waiver_due_date', 'prelim_deadline_days', 'lien_deadline_days']) {
+    assert.equal(result[field], null, field);
+  }
+  assert.deepEqual(result.warnings, []);
+  assert.equal(result.notes, '');
 });
 
 // Public supplier delivery-event contract. Shapes follow the live supplier-events-v2 result.

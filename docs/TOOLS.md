@@ -78,7 +78,7 @@ returns `review_required`. That is a valid result, not an error.
 | `project_type` | `commercial`, `residential` or `public` | Yes | Private commercial, private residential, or public. Public projects always need review. |
 | `hired_by` | `owner`, `contractor` or `subcontractor` | Yes | Who ordered the materials from the supplier. |
 | `deliveries_complete` | boolean | Yes | `true` when the final delivery has happened. `false` while deliveries are ongoing, which returns `awaiting_final_delivery` for the lien date. |
-| `florida_final_payment_status` | `yes`, `no` or `unknown` | No. Florida only. | Did the owner make final payment to the contractor? Use `unknown` when it isn't verified. Omitted or `unknown` keeps the notice under review. `yes` needs `florida_final_payment_date` for a notice baseline. |
+| `florida_final_payment_status` | `yes`, `no` or `unknown` | No. Florida only. | Did the owner make final payment to the contractor? Use `unknown` when it isn't verified. For suppliers not hired by the owner, `unknown`, omitted, or `yes` without `florida_final_payment_date` makes preliminary notice `review_required`. |
 | `florida_final_payment_date` | string, `YYYY-MM-DD` | No. Florida only, with `yes`. | The owner's final-payment date. Not earlier than `first_delivery_date`. |
 | `florida_termination_status` | `yes`, `no` or `unknown` | No. Florida only. | Was the original contract or the notice of commencement terminated? `no` permits the lien baseline. `yes`, `unknown` or omitted requires qualified lien review. |
 | `florida_termination_date` | string, `YYYY-MM-DD` | No. Florida only, with `yes`. | Termination date of the contract or notice of commencement. Not earlier than `first_delivery_date`. A lien date still requires qualified review. |
@@ -112,12 +112,13 @@ unresolved, the same as `unknown`. An unresolved answer holds only the deadline 
 
 | State | Field | Answer that permits a date | Any other answer, or omitted |
 | --- | --- | --- | --- |
-| FL | `florida_final_payment_status` | `no`, or `yes` with `florida_final_payment_date` | The notice is `review_required` |
+| FL | `florida_final_payment_status` | `no`, or `yes` with `florida_final_payment_date` | The notice is `review_required` when a contractor or subcontractor hired the supplier |
 | FL | `florida_termination_status` | `no` | The lien is `review_required` |
 | KS | `kansas_extension_status` | `no` | The lien is `review_required` |
 
-The server enforces the final-payment row when a contractor or subcontractor hired the supplier.
-An answer that permits a date doesn't guarantee one: the other facts still apply.
+The server enforces the final-payment row only when a contractor or subcontractor hired the
+supplier; for a supplier hired by the owner, it doesn't require a final-payment answer. An
+answer that permits a date doesn't guarantee one: the other facts still apply.
 
 #### Ongoing deliveries
 
@@ -580,7 +581,7 @@ network error details or the customer key.
 
 | Status | Hint the tool adds |
 | --- | --- |
-| 400, 422 | Depends on the tool. `calculate_supplier_deadlines`: check the fields against the `supplier-events-v2` schema. `get_supplier_questions`: check the project scope. `calculate_supplier_deadlines_v3`: check the discovered event fields and their date policies. Other tools: check the state code and the date format. |
+| 400, 422 | Depends on the tool. `calculate_supplier_deadlines`: check the fields against the `supplier-events-v2` schema. `get_supplier_questions`: check the project scope. `calculate_supplier_deadlines_v3`: check the discovered event fields and their date policies. `get_state_lien_guide` and `list_state_lien_guides`: check that `state` is a two-letter US state or DC code. `calculate_lien_deadline` and `list_supported_states`: check the state code and the date format. |
 | 401 | Check that the customer key is active and unexpired. Replace a revoked or rotated key. |
 | 403 | The customer key needs permission for this endpoint and its account. |
 | 404 | No guide exists for that state code. |

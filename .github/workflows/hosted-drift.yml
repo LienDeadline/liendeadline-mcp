@@ -1,0 +1,78 @@
+name: hosted-drift
+
+# A merge to main deploys the hosted endpoint through a push webhook (see docs/HOSTED.md). A
+# failed webhook delivery is not retried, so check that the endpoint serves main's version.
+# A failed run is the alert. Needs no secrets: it reads this repository and the public endpoint.
+on:
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Compare the hosted version with main
+        env:
+          MCP_URL: https://mcp.liendeadline.com/mcp
+          GRACE_MINUTES: "45"
+          RETRY_DELAY_SECONDS: "30"
+        run: |
+          set -euo pipefail
+          expected=$(node -p 'require("./package.json").version')
+          sha=$(git rev-parse HEAD)
+          committed=$(git log -1 --format=%ct HEAD)
+          age_minutes=$(( ($(date +%s) - committed) / 60 ))
+
+          # One attempt: an MCP initialize POST, printing result.serverInfo.version.
+          served_version() {
+            local response
+            response=$(curl -sS --fail --max-time 20 -X POST "$MCP_URL" \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json, text/event-stream' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"hosted-drift-check","version":"1"}}}') || return 1
+            printf '%s' "$response" |
+              node -e '
+                let raw = "";
+                process.stdin.on("data", c => raw += c).on("end", () => {
+                  let message;
+                  try { message = JSON.parse(raw); } catch {
+                    const data = raw.split("\n").filter(l => l.startsWith("data:")).map(l => l.slice(5)).join("");
+                    try { message = JSON.parse(data); } catch { message = undefined; }
+                  }
+                  const version = message?.result?.serverInfo?.version;
+                  if (typeof version !== "string" || version === "") {
+                    console.error("The response has no result.serverInfo.version.");
+                    process.exit(1);
+                  }
+                  console.log(version);
+                });'
+          }
+
+          if ! served=$(served_version); then
+            echo "First request to $MCP_URL failed; retrying in ${RETRY_DELAY_SECONDS}s."
+            sleep "$RETRY_DELAY_SECONDS"
+            if ! served=$(served_version); then
+              echo "::error::Could not read the hosted version from $MCP_URL after two attempts. main is $sha (version $expected)."
+              exit 1
+            fi
+          fi
+
+          echo "main $sha: $expected. Hosted: $served. Newest main commit is $age_minutes minutes old."
+          if [ "$served" = "$expected" ]; then
+            echo "The hosted endpoint serves main's version."
+          elif [ "$age_minutes" -le "$GRACE_MINUTES" ]; then
+            echo "Versions differ, but main changed $age_minutes minutes ago; a deploy may still be running."
+          else
+            echo "::error::Hosted endpoint serves $served, but main $sha is $expected (committed $age_minutes minutes ago). The main deploy did not complete; re-run the main build through the private operations procedure."
+            exit 1
+          fi

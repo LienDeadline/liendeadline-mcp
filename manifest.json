@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "liendeadline",
   "display_name": "LienDeadline",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers.",
   "long_description": "Calculates a material supplier's preliminary notice and lien filing baselines from delivery dates with LienDeadline's public API, and returns editorial state lien guides with statute citations for all 50 states plus DC. Available date baselines cover Florida and Kansas private projects; other cases return review_required with the reason. The supplier calculation and guides need no key. Not legal advice.",
   "author": {
