@@ -62,7 +62,9 @@ const PUBLIC_INSTRUCTIONS =
   "calculate_supplier_deadlines is public and needs no key: give it the project state, first " +
   "delivery date, final delivery date when deliveries are complete, project type and who hired " +
   "the supplier. Answer Florida final-payment and termination or Kansas extension questions " +
-  "explicitly as yes, no or unknown; missing and unknown facts need review. Available date baselines " +
+  "explicitly as yes, no or unknown; missing and unknown facts need review. The Florida final-payment " +
+  "question applies to suppliers not hired by the owner: unknown, omitted, or yes without a date makes " +
+  "preliminary notice review_required. Available date baselines " +
   "cover Florida and Kansas private projects; every other " +
   "case returns review_required, which is an answer, not a failure. Ask for missing facts rather " +
   "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
@@ -124,7 +126,8 @@ export function buildServer(options: ServerOptions): McpServer {
         "florida_final_payment_status and florida_termination_status; Kansas (KS) takes " +
         "kansas_extension_status; these are rejected for other states. Each takes yes, no or unknown: " +
         "an omitted or unknown answer keeps the affected deadline under review, and a blanket review " +
-        "flag is not accepted. A Florida event date is accepted only with the matching yes answer. " +
+        "flag is not accepted. The Florida final-payment answer holds the notice for suppliers not hired " +
+        "by the owner. A Florida event date is accepted only with the matching yes answer. " +
         "Delivery dates are furnishing dates, not invoice dates. Returns JSON with an overall status " +
         "(calculated or review_required), preliminary_notice and lien_filing (each with its own status: " +
         "calculated, not_required, review_required or awaiting_final_delivery, plus deadline, " +
@@ -165,9 +168,9 @@ export function buildServer(options: ServerOptions): McpServer {
           .enum(["yes", "no", "unknown"])
           .optional()
           .describe(
-            "Florida only: did the owner make final payment to the contractor? unknown when not verified; " +
-              "omitted or unknown keeps the notice under review, and yes needs florida_final_payment_date " +
-              "for a notice baseline.",
+            "Florida only: did the owner make final payment to the contractor? unknown when not verified. " +
+              "For suppliers not hired by the owner, unknown, omitted, or yes without " +
+              "florida_final_payment_date makes preliminary notice review_required.",
           ),
         florida_termination_status: z
           .enum(["yes", "no", "unknown"])
@@ -246,8 +249,9 @@ export function buildServer(options: ServerOptions): McpServer {
           "preliminary notice and lien filing deadlines for one construction invoice from its invoice " +
           "or delivery date and state. Returns JSON with state, invoice_date, project_type, " +
           "preliminary_notice_deadline, lien_deadline, waiver_due_date, prelim_deadline_days, " +
-          "lien_deadline_days, warnings such as weekend or holiday rollover, notes and a disclaimer; " +
-          "values the API does not return are null. API denials (401 key, 403 scope, 429 rate limit) " +
+          "lien_deadline_days, warnings such as weekend or holiday rollover, notes and a disclaimer. " +
+          "A date, day count or project_type the API does not return is null; missing warnings is " +
+          "[] and missing notes is an empty string. API denials (401 key, 403 scope, 429 rate limit) " +
           "return a tool error. Read-only. Not legal advice.",
         inputSchema: {
           state: z

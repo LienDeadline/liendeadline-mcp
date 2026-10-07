@@ -10,7 +10,7 @@
 /** Keep in step with package.json and server.json; test/metadata.test.mjs enforces it. */
 import { isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3, isSupplierScopeV3, type SupplierDiscovery, type SupplierRequestV3, type SupplierResultV3, type SupplierScopeV3 } from "./supplier-v3.ts";
 
-export const VERSION = "0.5.2";
+export const VERSION = "0.5.3";
 
 export const DEFAULT_BASE_URL = "https://secure-api-v1.liendeadline.com";
 
@@ -54,6 +54,8 @@ function customerHeaders(baseUrl: string, apiKey?: string): Record<string, strin
 
 const INVOICE_INPUT_HINT =
   " Check that state is a supported two-letter US code and invoice_date is YYYY-MM-DD.";
+
+const GUIDE_INPUT_HINT = " Check that state is a two-letter US state or DC code.";
 
 async function request<T>(
   baseUrl: string,
@@ -387,6 +389,8 @@ export async function listStateGuides(baseUrl: string): Promise<StateGuideSummar
   const raw = await request<{ states?: StateGuideSummary[] }>(
     baseUrl,
     "/api/v1/state-guides/index",
+    undefined,
+    GUIDE_INPUT_HINT,
   );
   return (raw.states ?? []).map((s) => ({
     state_code: s.state_code,
@@ -414,6 +418,8 @@ export async function getStateGuide(baseUrl: string, stateCode: string): Promise
   const raw = await request<Record<string, unknown>>(
     baseUrl,
     `/api/v1/state-guides/${encodeURIComponent(code)}`,
+    undefined,
+    GUIDE_INPUT_HINT,
   );
   const g = (raw.data ?? raw) as Record<string, unknown>;
   const slug = String(g.slug ?? code.toLowerCase());
