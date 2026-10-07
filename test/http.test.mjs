@@ -1,3 +1,4 @@
+import { input as v3Input, conservativeResult } from "./supplier-v3-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawn, spawnSync } from 'node:child_process';
@@ -401,5 +402,19 @@ test('serves the LienDeadline icon as the host favicon', async () => {
     assert.equal(head.status, 200);
     assert.equal(await head.text(), '');
     assert.equal((await fetch(new URL('/favicon.ico', url), { method: 'POST' })).status, 405);
+  });
+});
+
+
+test('actual hosted HTTP preserves conservative target under qualified review with public instructions', async () => {
+  await withHostedServer({ MCP_TEST_V3_ACTION: '1' }, async url => {
+    await withClient(url, async client => {
+      assert.match(client.getInstructions(), /label it Conservative action date/);
+      assert.match(client.getInstructions(), /statutory deadline remains unresolved, with no statutory countdown/);
+      const {contract_version, role, ...args} = v3Input;
+      const response = await client.callTool({name: 'calculate_supplier_deadlines_v3', arguments: args});
+      assert.notEqual(response.isError, true);
+      assert.deepEqual(JSON.parse(text(response)), conservativeResult);
+    });
   });
 });
