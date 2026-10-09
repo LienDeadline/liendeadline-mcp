@@ -56,7 +56,10 @@ const PUBLIC_INSTRUCTIONS =
   "For jurisdiction-specific questions, first use get_supplier_questions for the exact state, project type and hiring relationship. " +
   "It returns live scope support, event questions and rule identities. Ask those questions without guessing; use calculate_supplier_deadlines_v3 " +
   "with those identities and nested event answers. Review-required and no-lien-right outcomes remain distinct. Raw candidate_deadlines under review " +
-  "are unresolved statutory candidates, never calculated filing dates. A 409 requires fresh discovery and confirmation; a 503 means this interface " +
+  "are unresolved statutory candidates, never calculated filing dates. If a verified review_required outcome returns action_by, " +
+  "label it Conservative action date, preserve its explanation, sources and critical warnings, and retain qualified review: " +
+  "it is a planning target while the statutory deadline remains unresolved, with no statutory countdown. Never infer an action date " +
+  "from candidates, guides or memory. A 409 requires fresh discovery and confirmation; a 503 means this interface " +
   "is unavailable and is not permission to infer new coverage. The existing v2 calculator remains available for its stated scope. " +
   "US mechanics lien and preliminary notice deadlines for construction material suppliers. " +
   "calculate_supplier_deadlines is public and needs no key: give it the project state, first " +
@@ -70,7 +73,7 @@ const PUBLIC_INSTRUCTIONS =
   "than guessing, and never substitute an invoice date for delivery dates. get_state_lien_guide " +
   "and list_state_lien_guides return editorial guides with statute citations for all 50 states " +
   "plus DC: use get_state_lien_guide to explain the rules behind a date and list_state_lien_guides " +
-  "to find valid state codes. Guide day counts are editorial summaries; take dates only from verified calculated outcomes of " +
+  "to find valid state codes. Guide day counts are editorial summaries; take statutory dates only from verified calculated outcomes of " +
   "calculate_supplier_deadlines or calculate_supplier_deadlines_v3, and treat unresolved outcomes as requiring qualified " +
   "review. Research approval for a jurisdiction does not enable its calculations; take dates " +
   "only from a successful calculation response for the submitted facts. ";
@@ -223,7 +226,7 @@ export function buildServer(options: ServerOptions): McpServer {
 
   server.registerTool("calculate_supplier_deadlines_v3", {
     title: "Calculate from discovered supplier facts",
-    description: "Evaluates supplier-events-v3 project facts against the exact discovered rule and question identities. Returns independent notice and lien outcomes with sources and an exact nested input echo. Only calculated outcomes contain deadline dates; review candidates remain unresolved. Stale identities return 409, unavailable reviewed sources return 503. Public, stateless and read-only; no key, stored records, sent notices or filed liens.",
+    description: "Evaluates supplier-events-v3 project facts against the exact discovered rule and question identities. Returns independent notice and lien outcomes with sources and an exact nested input echo. Only calculated outcomes contain statutory deadline dates; review candidates remain unresolved. An optional verified action_by is a Conservative action date planning target under qualified review; the statutory deadline and countdown remain unresolved, with explanation, sources and warnings. Stale identities return 409, unavailable reviewed sources return 503. Public, stateless and read-only; no key, stored records, sent notices or filed liens.",
     inputSchema: {
       ...v3Scope,
       rules_source: z.object({ schema_version: z.enum(["state-rules-v1", "state-rules-v2"]), source_version: z.string(), source_hash: digest, reviewed_commit: z.string().regex(/^[0-9a-f]{40}$/), supplier_engine_version: z.string(), implementation_manifest_hash: digest }).strict().describe("Exact rules_source from discovery for this scope."),

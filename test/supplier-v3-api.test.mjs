@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateSupplierDeadlinesV3, getSupplierQuestions } from '../src/api.ts';
-import { scope, discovery, input, result } from './supplier-v3-fixture.mjs';
+import { scope, discovery, input, result, conservativeResult } from './supplier-v3-fixture.mjs';
 
 test('v3 API transport sends public scope/facts without credentials and exact identity binding', async t => {
   const calls = [];
@@ -24,5 +24,16 @@ test('v3 transport rejects stale/malformed results and reports 409/503 without r
     assert.equal(mock.mock.callCount(), 1); mock.mock.restore();
   }
   t.mock.method(globalThis, 'fetch', async () => Response.json({...result, inputs: {...input, events: {}}}));
+  await assert.rejects(() => calculateSupplierDeadlinesV3('https://example.org', input), /no dates/);
+});
+
+
+test('v3 transport preserves conservative review targets unchanged and rejects misleading targets', async t => {
+  let body = conservativeResult;
+  t.mock.method(globalThis, 'fetch', async () => Response.json(body));
+  assert.deepEqual(await calculateSupplierDeadlinesV3('https://example.org', input), conservativeResult);
+  body = structuredClone(conservativeResult); body.lien_filing.action_by = '2026-07-02';
+  await assert.rejects(() => calculateSupplierDeadlinesV3('https://example.org', input), /no dates/);
+  body = structuredClone(conservativeResult); body.inputs.events.project_completed.date = '2026-06-02';
   await assert.rejects(() => calculateSupplierDeadlinesV3('https://example.org', input), /no dates/);
 });

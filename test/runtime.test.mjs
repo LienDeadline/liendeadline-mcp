@@ -1,4 +1,4 @@
-import { input as v3Input } from "./supplier-v3-fixture.mjs";
+import { input as v3Input, conservativeResult } from "./supplier-v3-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
@@ -177,4 +177,17 @@ test('live smoke without a key runs public tools only and never forwards a key',
   assert.match(result.stdout, /customer tools skipped/);
   assert.doesNotMatch(result.stdout, /calculate_lien_deadline TX/);
   assert.match(result.stdout, /OK/);
+});
+
+
+test('actual stdio preserves conservative target under qualified review and exposes clear instructions', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: '', MCP_TEST_V3_ACTION: '1' }, async client => {
+    assert.match(client.getInstructions(), /label it Conservative action date/);
+    assert.match(client.getInstructions(), /statutory deadline remains unresolved, with no statutory countdown/);
+    assert.match(client.getInstructions(), /Never infer an action date.*from candidates, guides or memory/);
+    const {contract_version, role, ...args} = v3Input;
+    const response = await client.callTool({name: 'calculate_supplier_deadlines_v3', arguments: args});
+    assert.notEqual(response.isError, true);
+    assert.deepEqual(JSON.parse(text(response)), conservativeResult);
+  });
 });
