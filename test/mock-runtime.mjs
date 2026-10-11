@@ -1,4 +1,4 @@
-import { discovery, result } from "./supplier-v3-fixture.mjs";
+import { discovery, result, conservativeResult } from "./supplier-v3-fixture.mjs";
 // Child-process preload for isolated stdio and HTTP tests. Every upstream HTTP request is mocked.
 import { registerHooks } from 'node:module';
 registerHooks({
@@ -40,7 +40,7 @@ globalThis.fetch = async (url, init) => {
     return new Response(JSON.stringify({ detail: process.env.LIENDEADLINE_API_KEY }), { status: Number(process.env.MCP_TEST_STATUS) });
   }
   const body = path === '/api/v1/supplier-deadlines/questions' ? {...discovery, scope: Object.fromEntries(new URL(url).searchParams)}
-    : path === '/api/v1/supplier-deadlines/v3' ? {...result, inputs: JSON.parse(init.body)}
+    : path === '/api/v1/supplier-deadlines/v3' ? {...(process.env.MCP_TEST_V3_ACTION === "1" ? conservativeResult : result), inputs: JSON.parse(init.body)}
     : path === '/api/v1/supplier-deadlines' ? supplierEcho(JSON.parse(init.body))
     : path === '/api/v1/calculate-deadline'
     ? { data: { state: 'TX', invoice_date: '2026-07-01', lien_deadline: '2026-10-15' } }
