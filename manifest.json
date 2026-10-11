@@ -4,7 +4,7 @@
   "display_name": "LienDeadline",
   "version": "0.5.4",
   "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers.",
-  "long_description": "Calculates a material supplier's preliminary notice and lien filing baselines from delivery dates with LienDeadline's public API, and returns editorial state lien guides with statute citations for all 50 states plus DC. Available date baselines cover Florida and Kansas private projects; other cases return review_required with the reason. The supplier calculation and guides need no key. Not legal advice.",
+  "long_description": "Calculates a material supplier's preliminary notice and lien filing baselines from delivery dates with LienDeadline's public API, and returns editorial state lien guides with statute citations for all 50 states plus DC. Available date baselines cover Florida and Kansas private projects; other cases return review_required with the reason. Supplier calculations require a customer key and plan allowance. Guides remain public. Not legal advice.",
   "author": {
     "name": "LienDeadline",
     "email": "support@liendeadline.com",
@@ -34,15 +34,15 @@
   "tools": [
     {
       "name": "calculate_supplier_deadlines",
-      "description": "Supplier notice and lien filing baselines from delivery events. Public, no key."
+      "description": "Supplier notice and lien filing baselines from delivery events. Customer key and plan allowance required."
     },
     {
       "name": "get_supplier_questions",
-      "description": "Current supplier scope support, questions and source identities. Public, no key."
+      "description": "Current supplier scope support, questions and source identities. Customer key required."
     },
     {
       "name": "calculate_supplier_deadlines_v3",
-      "description": "Supplier results from discovered event facts and exact rule identities. Public, no key."
+      "description": "Supplier results from discovered event facts and exact rule identities. Customer key and plan allowance required."
     },
     {
       "name": "get_state_lien_guide",

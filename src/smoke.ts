@@ -45,6 +45,7 @@ const text = (r: unknown) => {
   return ((r as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? "").join("");
 };
 
+if (customerKey) {
 console.log("\ncalculate_supplier_deadlines FL, deliveries complete, explicit no event answers:");
 const supplier = JSON.parse(text(await client.callTool({
   name: "calculate_supplier_deadlines",
@@ -55,6 +56,8 @@ const supplier = JSON.parse(text(await client.callTool({
   },
 })));
 console.log(`  status=${supplier.status} notice=${supplier.preliminary_notice?.deadline} lien=${supplier.lien_filing?.deadline}`);
+
+} else { console.log("Supplier calculation skipped: a caller customer key is required."); }
 
 console.log("\nget_state_lien_guide TX (size check):");
 const guide = text(await client.callTool({ name: "get_state_lien_guide", arguments: { state: "TX" } }));

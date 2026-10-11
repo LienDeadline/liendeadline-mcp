@@ -26,10 +26,10 @@ const supplierEcho = inputs => {
 };
 globalThis.fetch = async (url, init) => {
   const path = new URL(url).pathname;
-  const protectedRoute = ['/api/v1/calculate-deadline', '/api/v1/supported-states'].includes(path);
+  const protectedRoute = ['/api/v1/calculate-deadline', '/api/v1/supported-states', '/api/v1/supplier-deadlines', '/api/v1/supplier-deadlines/questions', '/api/v1/supplier-deadlines/v3'].includes(path);
   const authorization = new Headers(init.headers).get('Authorization');
   if (init.redirect !== 'error' || (protectedRoute
-      ? authorization !== `Bearer ${process.env.LIENDEADLINE_API_KEY}`
+      ? authorization !== `Bearer ${process.env.MCP_TEST_EXPECTED_KEY ?? process.env.LIENDEADLINE_API_KEY}`
       : authorization !== null) ||
       // Hosted tests forbid Authorization on every route, protected or not.
       (process.env.MCP_TEST_FORBID_AUTHORIZATION === '1' && authorization !== null)) {

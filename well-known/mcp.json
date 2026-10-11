@@ -10,15 +10,15 @@
   "tools": [
     {
       "name": "calculate_supplier_deadlines",
-      "description": "Supplier notice and lien filing baselines from delivery events. Public, no key."
+      "description": "Supplier notice and lien filing baselines from delivery events. Customer key and plan allowance required."
     },
     {
       "name": "get_supplier_questions",
-      "description": "Current supplier scope support, questions and source identities. Public, no key."
+      "description": "Current supplier scope support, questions and source identities. Customer key required."
     },
     {
       "name": "calculate_supplier_deadlines_v3",
-      "description": "Supplier results from discovered event facts and exact rule identities. Public, no key."
+      "description": "Supplier results from discovered event facts and exact rule identities. Customer key and plan allowance required."
     },
     {
       "name": "get_state_lien_guide",

@@ -39,7 +39,7 @@ who hired you. LienDeadline turns your delivery dates into those deadlines and s
   back as "needs review", with the reason.
 - **Lien guides for all 50 states and DC.** Rule summaries, deadline tables and common questions,
   with statute citations.
-- **Safe by design.** Every tool is read-only. Nothing sends notices, files liens or makes payments,
+- **Safe by design.** Calculations consume plan usage. Nothing sends notices, files liens or makes payments,
   and you need no account or API key.
 
 <a name="hosted-endpoint"></a>
@@ -154,9 +154,9 @@ or a fact you don't know, it returns `review_required` with the reason instead o
 
 | Tool | What it does | Key |
 | --- | --- | --- |
-| `calculate_supplier_deadlines` | Preliminary notice and lien filing deadlines from delivery dates and yes, no or unknown event answers | None |
-| `get_supplier_questions` | Whether v3 covers a state, project type and hiring relationship, with its questions, sources and rule versions | None |
-| `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` | None |
+| `calculate_supplier_deadlines` | Preliminary notice and lien filing deadlines from delivery dates and yes, no or unknown event answers | Customer |
+| `get_supplier_questions` | Whether v3 covers a state, project type and hiring relationship, with its questions, sources and rule versions | Customer |
+| `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` | Customer |
 | `get_state_lien_guide` | One state's lien guide: rules, statute citations, deadline table and FAQs | None |
 | `list_state_lien_guides` | Every guide (50 states and DC) with its code, title and slug | None |
 | `calculate_lien_deadline` | Invoice-based deadlines (local server only) | Customer |
@@ -166,8 +166,9 @@ Inputs, outputs and statuses are in the [tool reference](https://github.com/Lien
 
 ## Privacy and safety
 
-- **No account, no key.** The public tools work anonymously, and nothing is stored between
-  requests.
+- **Account usage.** Supplier calculations require a customer key and consume plan allowance.
+  Hosted callers send their own `Authorization: Bearer <key>` on each request; local callers
+  set `LIENDEADLINE_API_KEY`. The hosted server never uses a service-wide key. State guides remain public.
 - **What's sent.** The facts you give (state, dates, project type, who hired you and your yes, no
   or unknown answers) go to the LienDeadline API to calculate. Guide lookups send only a state code.
 - **Hosted server.** Its logs record the method, status and response time of each request, never

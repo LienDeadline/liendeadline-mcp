@@ -36,7 +36,7 @@
       "environmentVariables": [
         {
           "name": "LIENDEADLINE_API_KEY",
-          "description": "Optional dedicated customer key for the customer invoice tools; the supplier calculation and state guides need no key.",
+          "description": "Dedicated customer key required for supplier and invoice calculations. State guides need no key.",
           "isRequired": false,
           "isSecret": true
         }

@@ -3,7 +3,7 @@
 This is the precise reference for the LienDeadline MCP tools: inputs, results, statuses and the
 checks the server runs. For setup, see the [README](../README.md).
 
-The server has seven tools. All of them are read-only: they calculate or read, and none sends a
+The server has seven tools. Calculations consume plan allowance; guide reads do not. None sends a
 notice, files a lien or makes a payment. Every tool is annotated `readOnlyHint: true`,
 `destructiveHint: false`, `idempotentHint: true` and `openWorldHint: true`.
 
@@ -62,7 +62,7 @@ not released yet. `calculate_supplier_deadlines` still covers Florida and Kansas
 ### `calculate_supplier_deadlines`
 
 Calculates a material supplier's preliminary notice and lien filing deadlines from delivery
-events, under contract `supplier-events-v2`. Public and stateless: no key, and nothing is stored.
+events, under contract `supplier-events-v2`. A customer key and plan allowance are required; no project is saved.
 
 Calculated dates are available for Florida (`FL`) and Kansas (`KS`) private projects, meaning
 `commercial` or `residential`. Every other state, Texas included, and every `public` project
@@ -225,8 +225,7 @@ remains available.
 ### `get_supplier_questions`
 
 Returns the current v3 scope support for a material supplier: yes/no/unknown event questions,
-date policies, sources, and the exact rule and question identities. Public and read-only. It
-needs no key and no delivery dates.
+date policies, sources, and the exact rule and question identities. A customer key is required; discovery does not consume calculation quota and needs no delivery dates.
 
 | Name | Type | Required | Allowed values and meaning |
 | --- | --- | --- | --- |
@@ -295,8 +294,8 @@ If any check fails, the tool returns an error and no questions:
 
 Evaluates v3 project facts against the exact discovered rule and question identities. Returns
 independent notice and lien outcomes, each with its own status and sources, and an exact nested
-echo of the request. Only `calculated` outcomes contain deadline dates. Public, stateless and
-read-only.
+echo of the request. Only `calculated` outcomes contain deadline dates. Requires a customer key;
+each successful result consumes one API plan unit.
 
 | Name | Type | Required | Allowed values and meaning |
 | --- | --- | --- | --- |

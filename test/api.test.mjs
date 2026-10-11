@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test, { afterEach } from 'node:test';
 import {
-  DEFAULT_BASE_URL, calculateDeadline, calculateSupplierDeadlines, listSupportedStates, getStateGuide, listStateGuides,
+  DEFAULT_BASE_URL, calculateDeadline, calculateSupplierDeadlines as requestSupplierDeadlines, listSupportedStates, getStateGuide, listStateGuides,
 } from '../src/api.ts';
 
 // Synthetic key only; no issued credential or provider request.
 const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`;
+const calculateSupplierDeadlines = (base, input) => requestSupplierDeadlines(base, input, KEY);
 const input = { state: 'TX', invoice_date: '2026-07-01', project_type: 'Commercial' };
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -160,14 +161,14 @@ const supplierResult = (inputs = supplierBody, overrides = {}) => ({
   ...overrides,
 });
 
-test('supplier calculation is public: no credential, exact body, redirects refused', async () => {
+test('supplier calculation requires its customer key, exact body, redirects refused', async () => {
   const calls = mock(supplierResult());
   const result = await calculateSupplierDeadlines(DEFAULT_BASE_URL, supplierInput);
   assert.equal(result.lien_filing.deadline, '2026-12-09');
   assert.equal(calls.length, 1);
   assert.equal(new URL(calls[0].url).pathname, '/api/v1/supplier-deadlines');
   assert.equal(calls[0].init.method, 'POST');
-  assert.equal(new Headers(calls[0].init.headers).has('Authorization'), false);
+  assert.equal(new Headers(calls[0].init.headers).get('Authorization'), `Bearer ${KEY}`);
   assert.equal(calls[0].init.redirect, 'error');
   assert.deepEqual(JSON.parse(calls[0].init.body), supplierBody);
 });
