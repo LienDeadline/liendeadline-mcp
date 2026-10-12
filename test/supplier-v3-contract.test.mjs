@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applicableQuestions, discoveredEvents, isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3 } from '../src/supplier-v3.ts';
-import { scope, discovery, input, deadline, result } from "./supplier-v3-fixture.mjs";
+import { scope, discovery, input, deadline, result, conservativeResult } from "./supplier-v3-fixture.mjs";
 const clone = value => structuredClone(value);
 
 test('v3 accepts canonical discovered IDs, identities and coherent independently dated results', () => {
@@ -50,4 +50,38 @@ test('conditional questions wait for known ancestors and changing an ancestor re
 test('v3 rejects date-on-no, explicit null, impossible dates, extra scope fields and reversed furnishing', () => {
   for (const events of [{project_completed: {answer: 'no', date: '2026-06-01'}}, {project_completed: {answer: 'yes', date: null}}, {project_completed: {answer: 'yes', date: '2026-02-30'}}, {homestead: {answer: 'yes', date: '2026-06-01'}}, {first_furnishing: {answer: 'yes', date: '2026-06-02'}, final_furnishing: {answer: 'yes', date: '2026-06-01'}}]) assert.equal(isSupplierRequestV3({...input, events}), false);
   assert.equal(isSupplierRequestV3({...input, invoice_date: '2026-06-01'}), false);
+});
+
+
+test('explicit conservative targets preserve review and absent action dates stay compatible', () => {
+  assert.equal(isSupplierResultV3(conservativeResult, input), true);
+  const equal = clone(conservativeResult); equal.lien_filing.action_by = '2026-06-30';
+  assert.equal(isSupplierResultV3(equal, input), true);
+  const absent = clone(conservativeResult); delete absent.lien_filing.action_by;
+  assert.equal(isSupplierResultV3(absent, input), true);
+  assert.equal(Object.hasOwn(absent.lien_filing, 'action_by'), false);
+  assert.equal(absent.lien_filing.deadline, null);
+});
+
+test('conservative target rejects malformed, unsourced or misleading legal outcomes', () => {
+  for (const mutate of [
+    v => {v.action_by = '2026-06-29';}, v => {v.lien_filing.action_by = null;}, v => {v.lien_filing.action_by = 20260629;},
+    v => {v.lien_filing.action_by = '2026-02-29';}, v => {v.lien_filing.action_by = '2026-6-29';},
+    v => {v.lien_filing.action_by = '2026-07-01';},
+    v => {v.lien_filing.reason_code = 'unknown_event';},
+    v => {v.lien_filing.source_ids = [];}, v => {v.lien_filing.source_ids = ['missing'];},
+    v => {delete v.lien_filing.candidate_deadlines;}, v => {v.lien_filing.candidate_deadlines = [];},
+    v => {v.lien_filing.candidate_deadlines[0].source_ids = [];},
+    v => {v.critical_warnings = [];}, v => {v.lien_filing.description = '';},
+    v => {v.lien_filing.deadline = v.lien_filing.action_by;},
+    v => {v.lien_filing.days_from_now = 28;}, v => {v.lien_filing.required = true;},
+    v => {v.status = 'calculated';},
+    v => {v.lien_filing = {...deadline, action_by: '2026-06-29'}; v.status = 'calculated';},
+    ...['not_required', 'no_lien_right', 'awaiting_final_delivery'].map(status => v => {
+      v.lien_filing.status = status; v.lien_filing.required = status === 'awaiting_final_delivery';
+    }),
+  ]) {
+    const value = clone(conservativeResult); mutate(value);
+    assert.equal(isSupplierResultV3(value, input), false, JSON.stringify(value.lien_filing));
+  }
 });

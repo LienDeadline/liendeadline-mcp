@@ -3,7 +3,7 @@
 This is the precise reference for the LienDeadline MCP tools: inputs, results, statuses and the
 checks the server runs. For setup, see the [README](../README.md).
 
-The server has seven tools. All of them are read-only: they calculate or read, and none sends a
+The server has seven tools. Calculations consume plan allowance; guide reads do not. None sends a
 notice, files a lien or makes a payment. Every tool is annotated `readOnlyHint: true`,
 `destructiveHint: false`, `idempotentHint: true` and `openWorldHint: true`.
 
@@ -62,7 +62,7 @@ not released yet. `calculate_supplier_deadlines` still covers Florida and Kansas
 ### `calculate_supplier_deadlines`
 
 Calculates a material supplier's preliminary notice and lien filing deadlines from delivery
-events, under contract `supplier-events-v2`. Public and stateless: no key, and nothing is stored.
+events, under contract `supplier-events-v2`. A customer key and plan allowance are required; no project is saved.
 
 Calculated dates are available for Florida (`FL`) and Kansas (`KS`) private projects, meaning
 `commercial` or `residential`. Every other state, Texas included, and every `public` project
@@ -225,8 +225,7 @@ remains available.
 ### `get_supplier_questions`
 
 Returns the current v3 scope support for a material supplier: yes/no/unknown event questions,
-date policies, sources, and the exact rule and question identities. Public and read-only. It
-needs no key and no delivery dates.
+date policies, sources, and the exact rule and question identities. A customer key is required; discovery does not consume calculation quota and needs no delivery dates.
 
 | Name | Type | Required | Allowed values and meaning |
 | --- | --- | --- | --- |
@@ -295,8 +294,8 @@ If any check fails, the tool returns an error and no questions:
 
 Evaluates v3 project facts against the exact discovered rule and question identities. Returns
 independent notice and lien outcomes, each with its own status and sources, and an exact nested
-echo of the request. Only `calculated` outcomes contain deadline dates. Public, stateless and
-read-only.
+echo of the request. Only `calculated` outcomes contain statutory deadline dates. Requires a customer key;
+each successful result consumes one API plan unit.
 
 | Name | Type | Required | Allowed values and meaning |
 | --- | --- | --- | --- |
@@ -388,6 +387,7 @@ Each outcome has these fields:
 | `description`, `reason_code` | Why the outcome has this status. |
 | `event_ids` | The events behind the outcome. |
 | `source_ids` | IDs from `sources`. At least one for `calculated`, `not_required` and `no_lien_right`. |
+| `action_by` | Optional verified Conservative action date planning target, only on `review_required` with reason `conservative_action_date`. Absent when unavailable; never a statutory deadline. |
 | `candidate_deadlines` | Optional raw statutory candidates. See [candidate deadlines](#candidate-deadlines). |
 
 #### Outcome statuses
@@ -414,6 +414,19 @@ filing deadlines.
 - Never resolve candidates by picking the earlier date, or any other date.
 - A `review_required` outcome with candidates still needs qualified review.
 - On a `calculated` outcome, the date is `deadline`. Candidates don't change it.
+
+#### Conservative action dates
+
+A verified `review_required` outcome may explicitly return `action_by` with reason
+`conservative_action_date`. It is a planning target while the statutory deadline remains
+unresolved. Label it **Conservative action date**, retain **Qualified review required**, and show
+the description, sources and critical warnings. Obtain qualified review before that date.
+Never infer an action date from candidates, guides or memory. There is no statutory countdown.
+
+The server requires a valid civil date no later than every raw candidate, nonempty source
+attribution, nonempty valid candidates and critical warnings. `deadline`, `days_from_now` and
+`required` remain `null`; the overall status remains `review_required`. An absent `action_by`
+provides no target. A malformed or inconsistent action date fails verification.
 
 #### What the server verifies
 
@@ -531,7 +544,7 @@ the states with calculated supplier deadlines.
 | Status | Where it appears | Date | `required` in v3 | Meaning |
 | --- | --- | --- | --- | --- |
 | `calculated` | v2 and v3, overall and per outcome | On the outcome only | `true` | A verified deadline. |
-| `review_required` | v2 and v3, overall and per outcome; v3 `scope_status` | No | `null` | Qualified review is needed. A fact is missing or `unknown`, or the case is outside calculated coverage. A valid result, not an error. |
+| `review_required` | v2 and v3, overall and per outcome; v3 `scope_status` | No statutory date; v3 may return an explicit `action_by` planning target | `null` | Qualified review is needed. A fact is missing or `unknown`, or the case is outside calculated coverage. A valid result, not an error. |
 | `awaiting_final_delivery` | v2 per outcome; v3 overall and per outcome | No | `true` | Deliveries are ongoing, and the lien date depends on the final delivery. |
 | `not_required` | v2 and v3, per outcome | No | `false` | This notice or filing isn't required for these facts. |
 | `no_lien_right` | v3 overall and per outcome, always on both outcomes; v3 `scope_status` | No | `false` | The supplier has no lien right in this scope. Not the same as `not_required`. |

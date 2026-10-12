@@ -1,4 +1,4 @@
-import { input as v3Input } from "./supplier-v3-fixture.mjs";
+import { input as v3Input, conservativeResult } from "./supplier-v3-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
@@ -42,7 +42,7 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
     ]);
     assert.match(client.getInstructions(), /calculate_lien_deadline and list_supported_states are customer API tools that need LIENDEADLINE_API_KEY/);
     for (const tool of tools) {
-      assert.equal(tool.annotations?.readOnlyHint, true);
+      assert.equal(tool.annotations?.readOnlyHint, !tool.name.startsWith('calculate_'));
       assert.equal(tool.annotations?.destructiveHint, false);
       assert.equal(tool.annotations?.title, tool.title);
       // Directory policy: a description says what its tool does, with no instructions about model
@@ -88,8 +88,8 @@ test('missing runtime key returns actionable MCP errors while guide tools work',
   });
 });
 
-test('public supplier tool works without a key and returns the verified echo', async () => {
-  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+test('supplier tool works with an account key and returns the verified echo', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
     assert.notEqual(result.isError, true);
     const body = JSON.parse(text(result));
@@ -100,8 +100,8 @@ test('public supplier tool works without a key and returns the verified echo', a
   });
 });
 
-test('actual stdio supplier tool keeps unknown events under review without a key', async () => {
-  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+test('actual stdio supplier tool keeps unknown events under review with an account key', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const { florida_final_payment_status, florida_termination_status, ...facts } = SUPPLIER_ARGS;
     const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: facts });
     assert.notEqual(result.isError, true);
@@ -113,8 +113,8 @@ test('actual stdio supplier tool keeps unknown events under review without a key
   });
 });
 
-test('actual stdio v3 discovery and calculation preserve identities without credentials', async () => {
-  await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
+test('actual stdio v3 discovery and calculation preserve identities with account credentials', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const discovered = await client.callTool({name: 'get_supplier_questions', arguments: {state: 'TX', project_type: 'commercial', hired_by: 'contractor'}});
     assert.notEqual(discovered.isError, true);
     assert.equal(JSON.parse(text(discovered)).scope_status, 'supported');
@@ -173,8 +173,21 @@ test('live smoke without a key runs public tools only and never forwards a key',
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /calculate_supplier_deadlines FL/);
+  assert.match(result.stdout, /Supplier calculation skipped: a caller customer key is required/);
   assert.match(result.stdout, /customer tools skipped/);
   assert.doesNotMatch(result.stdout, /calculate_lien_deadline TX/);
   assert.match(result.stdout, /OK/);
+});
+
+
+test('actual stdio preserves conservative target under qualified review and exposes clear instructions', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY, MCP_TEST_V3_ACTION: '1' }, async client => {
+    assert.match(client.getInstructions(), /label it Conservative action date/);
+    assert.match(client.getInstructions(), /statutory deadline remains unresolved, with no statutory countdown/);
+    assert.match(client.getInstructions(), /Never infer an action date.*from candidates, guides or memory/);
+    const {contract_version, role, ...args} = v3Input;
+    const response = await client.callTool({name: 'calculate_supplier_deadlines_v3', arguments: args});
+    assert.notEqual(response.isError, true);
+    assert.deepEqual(JSON.parse(text(response)), conservativeResult);
+  });
 });

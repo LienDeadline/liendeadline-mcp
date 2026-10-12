@@ -1,3 +1,4 @@
+import { input as v3Input, conservativeResult } from "./supplier-v3-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawn, spawnSync } from 'node:child_process';
@@ -55,9 +56,9 @@ async function withHostedServer(env, run) {
   }
 }
 
-async function withClient(url, run) {
+async function withClient(url, run, key) {
   const client = new Client({ name: 'hosted-contract-test', version: '0.0.0' });
-  await client.connect(new StreamableHTTPClientTransport(url));
+  await client.connect(new StreamableHTTPClientTransport(url, key ? {requestInit: {headers: {Authorization: `Bearer ${key}`}}} : {}));
   try {
     await run(client);
   } finally {
@@ -81,7 +82,7 @@ test('hosted initialize and tools/list over HTTP return exactly the five public 
       for (const tool of tools) {
         assert.ok(tool.title, `${tool.name} has a title`);
         // Directory reviewers read the title from the annotations, so it must repeat the tool title.
-        assert.deepEqual(tool.annotations, { title: tool.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+        assert.deepEqual(tool.annotations, { title: tool.title, readOnlyHint: !tool.name.startsWith('calculate_'), destructiveHint: false, idempotentHint: !tool.name.startsWith('calculate_'), openWorldHint: true });
       }
       assert.doesNotMatch(client.getInstructions(), /calculate_lien_deadline|list_supported_states|LIENDEADLINE_API_KEY/);
       // Customer tools are not registered at all, so they cannot be called either.
@@ -141,7 +142,7 @@ test('hosted public tools are defined exactly as the stdio server defines them',
 });
 
 test('hosted supplier call returns the verified supplier-events-v2 echo', async () => {
-  await withHostedServer({}, async url => {
+  await withHostedServer({MCP_TEST_FORBID_AUTHORIZATION: '0'}, async url => {
     await withClient(url, async client => {
       const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
       assert.notEqual(result.isError, true, text(result));
@@ -161,7 +162,7 @@ test('hosted supplier call returns the verified supplier-events-v2 echo', async 
       const invalid = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: { ...SUPPLIER_ARGS, last_delivery_date: undefined } });
       assert.equal(invalid.isError, true);
       assert.match(text(invalid), /last_delivery_date is required when deliveries_complete is true/);
-    });
+    }, KEY);
   });
 });
 
@@ -173,11 +174,30 @@ test('hosted mode never sends Authorization upstream, even with a customer key i
       ]) {
         // The mock fails any upstream request that carries Authorization, which would make this an error.
         const result = await client.callTool({ name, arguments: args });
-        assert.notEqual(result.isError, true, `${name}: ${text(result)}`);
+        assert.equal(Boolean(result.isError), name === 'calculate_supplier_deadlines');
         assert.equal(text(result).includes(KEY), false);
       }
     });
     assert.match(logs(), /LIENDEADLINE_API_KEY is ignored/);
+  });
+});
+
+test('hosted caller credentials cannot leak into another exchange or public guides', async () => {
+  const callerKey = `ld_live_${'1'.repeat(32)}.${'B'.repeat(43)}`;
+  await withHostedServer({ MCP_TEST_FORBID_AUTHORIZATION: '0', MCP_TEST_EXPECTED_KEY: callerKey }, async (url, logs, errors) => {
+    await withClient(url, async client => {
+      const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
+      assert.notEqual(result.isError, true, text(result));
+      const guide = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX' } });
+      assert.notEqual(guide.isError, true, text(guide));
+    }, callerKey);
+    for (const key of [undefined, 'not-a-customer-key']) {
+      await withClient(url, async client => {
+        const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
+        assert.equal(result.isError, true);
+      }, key);
+    }
+    assert.equal((logs() + errors()).includes(callerKey), false);
   });
 });
 
@@ -344,7 +364,7 @@ test('live smoke can drive a hosted endpoint, expects only public tools and forw
     const [code] = await once(child, 'exit');
     assert.equal(code, 0, stderr);
     assert.match(stdout, /tools: 5/);
-    assert.match(stdout, /status=calculated notice=2026-09-17 lien=2026-12-09/);
+    assert.match(stdout, /Supplier calculation skipped: a caller customer key is required/);
     assert.match(stdout, /customer tools skipped: the hosted endpoint serves only the public tools/);
     assert.equal(stdout.includes(KEY), false);
     assert.equal(stderr.includes(KEY), false);
@@ -401,5 +421,19 @@ test('serves the LienDeadline icon as the host favicon', async () => {
     assert.equal(head.status, 200);
     assert.equal(await head.text(), '');
     assert.equal((await fetch(new URL('/favicon.ico', url), { method: 'POST' })).status, 405);
+  });
+});
+
+
+test('actual hosted HTTP preserves conservative target under qualified review with public instructions', async () => {
+  await withHostedServer({ MCP_TEST_V3_ACTION: '1', MCP_TEST_FORBID_AUTHORIZATION: '0' }, async url => {
+    await withClient(url, async client => {
+      assert.match(client.getInstructions(), /label it Conservative action date/);
+      assert.match(client.getInstructions(), /statutory deadline remains unresolved, with no statutory countdown/);
+      const {contract_version, role, ...args} = v3Input;
+      const response = await client.callTool({name: 'calculate_supplier_deadlines_v3', arguments: args});
+      assert.notEqual(response.isError, true);
+      assert.deepEqual(JSON.parse(text(response)), conservativeResult);
+    }, KEY);
   });
 });

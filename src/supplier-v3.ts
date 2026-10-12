@@ -38,6 +38,7 @@ export type SupplierDeadlineV3 = {
   name: string; status: "calculated" | "not_required" | "no_lien_right" | "awaiting_final_delivery" | "review_required";
   deadline: string | null; days_from_now: number | null; required: boolean | null;
   description: string; reason_code: string; event_ids: string[]; source_ids: string[];
+  action_by?: string; // Explicit planning target; the statutory deadline remains unresolved.
   candidate_deadlines?: { id: string; date: string; source_ids: string[] }[];
 };
 export type SupplierResultV3 = {
@@ -113,10 +114,11 @@ export function isSupplierDiscovery(v: unknown, scope: SupplierScopeV3): v is Su
   });
 }
 export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is SupplierResultV3 {
-  if (!record(v) || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
+  if (!record(v) || Object.hasOwn(v, "action_by") || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
     !exactJson(v.inputs, request) || !exactJson(v.rules_source, request.rules_source) || !exactJson(v.questions_identity, request.questions_identity) ||
     !isCivilDateV3(v.as_of_date) || !citations(v.sources) || !texts(v.critical_warnings) || !text(v.disclaimer)) return false;
   const sources = new Set(v.sources.map(s => s.id)), asOf = Date.parse(v.as_of_date);
+  const hasCriticalWarnings = v.critical_warnings.length > 0;
   const deadlines = [v.preliminary_notice, v.lien_filing];
   const required = { not_required: false, no_lien_right: false, awaiting_final_delivery: true, review_required: null };
   if (!deadlines.every(d => {
@@ -125,6 +127,12 @@ export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is
     if (d.candidate_deadlines !== undefined && (!Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length > 16 || (d.candidate_deadlines.length > 0 && !["calculated", "review_required"].includes(String(d.status))) ||
       new Set(d.candidate_deadlines.map(c => record(c) ? c.id : undefined)).size !== d.candidate_deadlines.length ||
       !d.candidate_deadlines.every(c => record(c) && eventId(c.id) && isCivilDateV3(c.date) && texts(c.source_ids) && c.source_ids.length > 0 && c.source_ids.every(id => sources.has(id))))) return false;
+    // Accept only the API's explicit conservative target. Never infer one from
+    // candidates or promote it to a statutory date/countdown.
+    if (Object.hasOwn(d, "action_by") && (!isCivilDateV3(d.action_by) || d.status !== "review_required" ||
+      d.reason_code !== "conservative_action_date" || d.source_ids.length === 0 || !hasCriticalWarnings ||
+      !Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length === 0 ||
+      !d.candidate_deadlines.every(c => record(c) && typeof c.date === "string" && (d.action_by as string) <= c.date))) return false;
     if (d.status === "calculated") return d.required === true && d.source_ids.length > 0 && isCivilDateV3(d.deadline) && Number.isInteger(d.days_from_now) &&
       d.days_from_now === (Date.parse(d.deadline) - asOf) / 86400000;
     return typeof d.status === "string" && Object.hasOwn(required, d.status) && d.required === required[d.status as keyof typeof required] &&

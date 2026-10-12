@@ -5,6 +5,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import './mock-runtime.mjs';
 import { createHostedAnalytics, privacyFilter } from '../src/analytics.ts';
 
+process.env.LIENDEADLINE_API_KEY = 'ld_live_' + '0'.repeat(32) + '.' + 'A'.repeat(43);
 const { buildServer } = await import('../src/server.ts');
 const ENV = {
   POSTHOG_ENABLED: 'true', POSTHOG_PROJECT_TOKEN: `phc_${'A'.repeat(24)}`,
@@ -12,7 +13,7 @@ const ENV = {
 };
 
 async function withServer(analytics, run) {
-  const server = buildServer({ includeCustomerTools: false });
+  const server = buildServer({ includeCustomerTools: false, customerApiKey: 'ld_live_' + '0'.repeat(32) + '.' + 'A'.repeat(43) });
   analytics?.instrument(server);
   const client = new Client({ name: 'codex/private-customer@example.com', version: 'sensitive-version' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

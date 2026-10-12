@@ -1,8 +1,8 @@
 /**
  * Thin client over the LienDeadline API.
  *
- * The supplier delivery-event calculation and state guides are public and never carry
- * credentials. The customer invoice calculation and supported-state routes require a
+ * State guides are public and never carry credentials. Supplier and customer
+ * calculations and supported-state routes require a
  * dedicated customer Bearer key. The schema is published at
  * https://liendeadline.com/api/test-api/openapi.json
  */
@@ -89,6 +89,8 @@ async function request<T>(
         ? " Check that LIENDEADLINE_API_KEY is an active, unexpired customer key; replace revoked or rotated keys."
         : res.status === 403
           ? " The customer key needs permission for this endpoint and its account."
+          : res.status === 402
+            ? " Your plan calculation allowance is exhausted or an API plan is required."
           : res.status === 429
             ? " The API rate limit was reached; retry later."
             : res.status === 503
@@ -112,17 +114,17 @@ async function request<T>(
 
 export const SUPPLIER_EVENTS_CONTRACT_VERSION = "supplier-events-v2";
 
-/** Public discovery is the capability authority; approval counts are not serving coverage. */
-export async function getSupplierQuestions(baseUrl: string, scope: SupplierScopeV3): Promise<SupplierDiscovery> {
+/** Authenticated discovery is the capability authority; approval counts are not serving coverage. */
+export async function getSupplierQuestions(baseUrl: string, scope: SupplierScopeV3, apiKey?: string): Promise<SupplierDiscovery> {
   if (!isSupplierScopeV3(scope)) throw new LienDeadlineApiError("Invalid supplier scope: select a recognized state, project type and hiring relationship.");
-  const result = await request<unknown>(baseUrl, `/api/v1/supplier-deadlines/questions?${new URLSearchParams(scope)}`, undefined, " Check the supplier project scope.");
+  const result = await request<unknown>(baseUrl, `/api/v1/supplier-deadlines/questions?${new URLSearchParams(scope)}`, { headers: customerHeaders(baseUrl, apiKey) }, " Check the supplier project scope.");
   if (!isSupplierDiscovery(result, scope)) throw new LienDeadlineApiError("Supplier discovery could not be verified for this scope; no questions or dates are reported.");
   return result;
 }
 
-export async function calculateSupplierDeadlinesV3(baseUrl: string, input: SupplierRequestV3): Promise<SupplierResultV3> {
+export async function calculateSupplierDeadlinesV3(baseUrl: string, input: SupplierRequestV3, apiKey?: string): Promise<SupplierResultV3> {
   if (!isSupplierRequestV3(input)) throw new LienDeadlineApiError("Invalid supplier-events-v3 request: preserve discovered identities and submit yes/no/unknown event answers with real dates only for yes answers.");
-  const result = await request<unknown>(baseUrl, "/api/v1/supplier-deadlines/v3", { method: "POST", body: JSON.stringify(input) }, " Check the discovered event fields and their date policies.");
+  const result = await request<unknown>(baseUrl, "/api/v1/supplier-deadlines/v3", { method: "POST", body: JSON.stringify(input), headers: customerHeaders(baseUrl, apiKey) }, " Check the discovered event fields and their date policies.");
   if (!isSupplierResultV3(result, input)) throw new LienDeadlineApiError("Supplier result does not match the exact submitted facts and rule identities; no dates are reported.");
   return result;
 }
@@ -299,18 +301,19 @@ export function isVerifiedSupplierCalculation(
 }
 
 /**
- * Public, stateless supplier delivery-event baselines. No credential is ever attached,
- * so this works without LIENDEADLINE_API_KEY and against any configured origin.
+ * Supplier delivery-event baselines require a customer key and consume plan usage.
+ * Credentials are sent only to the pinned API origin.
  */
 export async function calculateSupplierDeadlines(
   baseUrl: string,
   input: SupplierInput,
+  apiKey?: string,
 ): Promise<SupplierCalculation> {
   const body = supplierRequestBody(input);
   const raw = await request<unknown>(
     baseUrl,
     "/api/v1/supplier-deadlines",
-    { method: "POST", body: JSON.stringify(body) },
+    { method: "POST", body: JSON.stringify(body), headers: customerHeaders(baseUrl, apiKey) },
     " Check the supplier event fields against the supplier-events-v2 schema.",
   );
   if (!isVerifiedSupplierCalculation(raw, body)) {

@@ -24,15 +24,17 @@ Cloud Run's front end answers [paths ending in `z`](https://cloud.google.com/run
 itself, so external checks against a Cloud Run URL must use `/health`. `/healthz` answers locally,
 in Docker and behind other hosts.
 
-Only the five public, keyless tools are registered: `calculate_supplier_deadlines`
+Only the five guide/supplier tools are registered: `calculate_supplier_deadlines`
 (`supplier-events-v2`), `get_supplier_questions`, `calculate_supplier_deadlines_v3`,
 `get_state_lien_guide` and `list_state_lien_guides`. The additive v3 tools depend on a
 promoted canonical source; their presence does not claim additional live date coverage. They are defined by
 the same `buildServer()` as the stdio server, so titles, descriptions, schemas and annotations
 match. Hosted mode never registers `calculate_lien_deadline` or `list_supported_states`, never
-uses `LIENDEADLINE_API_KEY` (if it is set, the server logs a warning and ignores it) and sends no
-`Authorization` header upstream. Each POST gets a fresh server and transport; nothing is kept
-between requests.
+uses `LIENDEADLINE_API_KEY` (if it is set, the server logs a warning and ignores it).
+Supplier discovery and calculations require the caller's dedicated `Authorization: Bearer <customer-key>`
+header on every exchange. Only that key is forwarded to the pinned API origin; guides carry no
+credentials. Each POST gets a fresh server and transport; nothing is kept between requests.
+Completed calculations consume the caller's API plan allowance.
 
 Clients must send `Content-Type: application/json` and `Accept: application/json,
 text/event-stream`, as the transport requires. A raw check:
@@ -62,14 +64,14 @@ curl -s https://mcp.liendeadline.com/mcp \
   level.
 - **CORS:** `Access-Control-Allow-Origin: *`, preflight for `Content-Type`, `Accept`,
   `Authorization`, `Mcp-Session-Id`, `Mcp-Protocol-Version` and `Last-Event-ID`. Origins are not
-  restricted because the tools are public and keyless. With no session or credential to protect,
-  DNS-rebinding protection would add nothing.
+  restricted; callers must supply an explicit dedicated Bearer key for supplier tools.
+  Cookies do not authenticate this endpoint. Credentials are never shared across exchanges.
 - **Configuration:** the image holds `package.json`, `npm-shrinkwrap.json`, production
-  `node_modules` and `dist`, and runs as `node`. Tools need no secrets or Google Cloud permissions.
+  `node_modules` and `dist`, and runs as `node`. No global customer secret or Google Cloud permission is used. Supplier clients supply their own keys.
   Optional analytics uses a project capture token supplied through the private operations control plane.
 
 Every tool call makes at most one upstream request, and `initialize` and `tools/list` make none.
-The endpoint therefore adds no capacity against the API beyond calling the public API directly.
+API access and plan budgets remain authoritative for every supplier call. Public guide calls remain free.
 
 ## Deploy plan
 
@@ -148,8 +150,9 @@ public repository and the Cloud Build upload.
    LIENDEADLINE_RUN_LIVE_SMOKE=1 LIENDEADLINE_MCP_URL=https://mcp.liendeadline.com/mcp npm run smoke
    ```
 
-   The smoke requires exactly the five public tools, then runs the Florida supplier call with
-   explicit `no` answers, a guide fetch and an error path.
+   The hosted smoke checks the five tools, a public guide and a validation-error path.
+   It deliberately sends no key and skips supplier calculations. Use the approved
+   caller-key acceptance procedure separately to verify supplier calculation usage.
 
    To confirm the rate-limit key, send 125 `initialize` requests within a minute, with a
    different forged `X-Forwarded-For` value on each. Requests past 120 must get `429`; the limit

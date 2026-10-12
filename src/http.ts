@@ -1,9 +1,8 @@
 /**
  * Hosted Streamable HTTP entry point (docs/HOSTED.md).
  *
- * Serves only the five public, keyless tools in stateless mode: every POST /mcp gets a fresh
- * server and transport, nothing is kept between requests, and no customer key is used or
- * forwarded. Logs carry only the HTTP method, status and latency of each request, never
+ * Serves five guide/supplier tools: every POST /mcp gets a fresh server and transport.
+ * Supplier calls forward only this caller's dedicated key; no key is kept between requests. Logs carry only the HTTP method, status and latency of each request, never
  * bodies, tool arguments or client addresses.
  */
 import { readFileSync } from "node:fs";
@@ -56,7 +55,7 @@ const FAVICON = (() => {
   }
 })();
 
-// Browser-based MCP clients need CORS. The tools are public and keyless, so any origin may call them.
+// Browser MCP clients may supply their own explicit Bearer key. No ambient cookies are accepted.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Expose-Headers": "Mcp-Session-Id, Mcp-Protocol-Version",
@@ -177,9 +176,14 @@ function readBody(req: IncomingMessage, limit: number): Promise<{ tooLarge: true
   });
 }
 
-/** One stateless MCP exchange: a fresh public-only server and transport for this request alone. */
+/** One stateless MCP exchange: a fresh server and transport with caller-scoped credentials for this request alone. */
 async function handleMcp(req: IncomingMessage, res: ServerResponse, message: unknown) {
-  const server = buildServer({ includeCustomerTools: false, baseUrl: BASE_URL });
+  // Never use a service-wide customer key. Forward only this caller's exact key;
+  // the API rechecks revocation, ownership, scope and plan for each tool call.
+  const auth = req.headers.authorization;
+  const customerApiKey = typeof auth === "string" && /^Bearer ld_live_[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/.test(auth)
+    ? auth.slice(7) : undefined;
+  const server = buildServer({ includeCustomerTools: false, baseUrl: BASE_URL, customerApiKey });
   analytics?.instrument(server);
   if (analytics) {
     // The SDK otherwise adds a client/session correlation token to initialize responses.
