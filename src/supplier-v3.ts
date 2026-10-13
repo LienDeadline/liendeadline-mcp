@@ -34,12 +34,19 @@ export type SupplierRequestV3 = SupplierScopeV3 & {
   rules_source: RulesIdentity; questions_identity: QuestionsIdentity;
   events: Record<string, EventValue>;
 };
+export type SupplierNoticeDutyV3 = {
+  id: string; name: string; description: string;
+  status: "calculated"; required: true;
+  deadline: string; days_from_now: number;
+  event_ids: string[]; source_ids: string[];
+};
 export type SupplierDeadlineV3 = {
   name: string; status: "calculated" | "not_required" | "no_lien_right" | "awaiting_final_delivery" | "review_required";
   deadline: string | null; days_from_now: number | null; required: boolean | null;
   description: string; reason_code: string; event_ids: string[]; source_ids: string[];
   action_by?: string; // Explicit planning target; the statutory deadline remains unresolved.
   candidate_deadlines?: { id: string; date: string; source_ids: string[] }[];
+  notice_duties?: SupplierNoticeDutyV3[];
 };
 export type SupplierResultV3 = {
   contract_version: typeof SUPPLIER_V3; status: "calculated" | "no_lien_right" | "awaiting_final_delivery" | "review_required";
@@ -82,6 +89,27 @@ function citations(v: unknown): v is SourceCitation[] {
     ids.add(s.id); return true;
   });
 }
+function noticeDuties(value: unknown, parent: Record<string, unknown>, request: SupplierRequestV3,
+  sources: Set<string>, asOf: number): value is SupplierNoticeDutyV3[] {
+  if (parent.status !== "calculated" || parent.required !== true || !isCivilDateV3(parent.deadline) ||
+    !Array.isArray(value) || value.length === 0 || value.length > 16) return false;
+  const keys = ["id", "name", "description", "status", "required", "deadline", "days_from_now", "event_ids", "source_ids"];
+  const ids = new Set<string>();
+  const dutyText = (v: unknown): v is string => text(v) && [...v].length <= 2000;
+  const events = parent.event_ids as string[], parentSources = parent.source_ids as string[];
+  if (!value.every(d => {
+    if (!record(d) || Object.keys(d).length !== keys.length || !keys.every(k => Object.hasOwn(d, k)) ||
+      !eventId(d.id) || ids.has(d.id) || !dutyText(d.name) || !dutyText(d.description) ||
+      d.status !== "calculated" || d.required !== true || !isCivilDateV3(d.deadline) || !Number.isInteger(d.days_from_now) ||
+      d.days_from_now !== (Date.parse(d.deadline) - asOf) / 86400000 ||
+      !texts(d.event_ids) || d.event_ids.length === 0 || new Set(d.event_ids).size !== d.event_ids.length ||
+      !d.event_ids.every(id => eventId(id) && events.includes(id) && Object.hasOwn(request.events, id)) ||
+      !texts(d.source_ids) || d.source_ids.length === 0 || new Set(d.source_ids).size !== d.source_ids.length ||
+      !d.source_ids.every(id => sources.has(id) && parentSources.includes(id))) return false;
+    ids.add(d.id); return true;
+  })) return false;
+  return parent.deadline === value.reduce((earliest, duty) => duty.deadline < earliest ? duty.deadline : earliest, value[0].deadline);
+}
 export function isSupplierScopeV3(v: unknown): v is SupplierScopeV3 {
   return record(v) && Object.keys(v).length === 5 && v.contract_version === SUPPLIER_V3 &&
     typeof v.state === "string" && /^[A-Za-z]{2}$/.test(v.state) && STATES.has(v.state.toUpperCase()) && v.role === "supplier" &&
@@ -114,16 +142,17 @@ export function isSupplierDiscovery(v: unknown, scope: SupplierScopeV3): v is Su
   });
 }
 export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is SupplierResultV3 {
-  if (!record(v) || Object.hasOwn(v, "action_by") || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
+  if (!record(v) || Object.hasOwn(v, "action_by") || Object.hasOwn(v, "notice_duties") || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
     !exactJson(v.inputs, request) || !exactJson(v.rules_source, request.rules_source) || !exactJson(v.questions_identity, request.questions_identity) ||
     !isCivilDateV3(v.as_of_date) || !citations(v.sources) || !texts(v.critical_warnings) || !text(v.disclaimer)) return false;
   const sources = new Set(v.sources.map(s => s.id)), asOf = Date.parse(v.as_of_date);
   const hasCriticalWarnings = v.critical_warnings.length > 0;
   const deadlines = [v.preliminary_notice, v.lien_filing];
   const required = { not_required: false, no_lien_right: false, awaiting_final_delivery: true, review_required: null };
-  if (!deadlines.every(d => {
+  if (!deadlines.every((d, index) => {
     if (!record(d) || !text(d.name) || !text(d.description) || !text(d.reason_code) || !texts(d.event_ids) ||
       !d.event_ids.every(id => eventId(id)) || !texts(d.source_ids) || !d.source_ids.every(id => sources.has(id))) return false;
+    if (Object.hasOwn(d, "notice_duties") && (index !== 0 || !noticeDuties(d.notice_duties, d, request, sources, asOf))) return false;
     if (d.candidate_deadlines !== undefined && (!Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length > 16 || (d.candidate_deadlines.length > 0 && !["calculated", "review_required"].includes(String(d.status))) ||
       new Set(d.candidate_deadlines.map(c => record(c) ? c.id : undefined)).size !== d.candidate_deadlines.length ||
       !d.candidate_deadlines.every(c => record(c) && eventId(c.id) && isCivilDateV3(c.date) && texts(c.source_ids) && c.source_ids.length > 0 && c.source_ids.every(id => sources.has(id))))) return false;
