@@ -62,6 +62,13 @@ const PUBLIC_INSTRUCTIONS =
   "report every Intent planning target with its target date, assumed filing date, full ten- or thirty-day interval, explanation and sources. " +
   "Earlier actual filing requires the full interval before that filing. Preserve these qualified plans separately from confirmed notices: " +
   "they do not establish a statutory expiration, actual filing, sent notice, completion or scheduled notification. " +
+  "Submit optional recurring_notice_facts only when the exact discovery returns a matching recurring_notice_intake descriptor. " +
+  "Its absence means no recurring intake is available for that scope; never infer it from the state alone. " +
+  "Optional recurring_notice_facts records actual Tennessee furnished months or New Hampshire written accounts. " +
+  "Report Tennessee recurring_notice_periods only for entered months, including paid and unknown periods, with entered_periods_only coverage. " +
+  "Do not infer intervening months or complete later occurrences from an earlier completion. " +
+  "Report New Hampshire recurring_notice_checkpoints as advisory account check-ins with unresolved legal status and their actual anchor and coverage. " +
+  "These checkpoints do not establish a legal deadline, service, completion, reminder or a blanket cadence reset; earlier gaps remain unresolved. " +
   "Raw candidate_deadlines under review " +
   "are unresolved statutory candidates, never calculated filing dates. If a verified review_required outcome returns action_by, " +
   "label it Conservative action date, preserve its explanation, sources and critical warnings, and retain qualified review: " +
@@ -223,7 +230,7 @@ export function buildServer(options: ServerOptions): McpServer {
 
   server.registerTool("get_supplier_questions", {
     title: "Discover supplier project questions",
-    description: "Returns the current supplier-events-v3 scope support, jurisdiction-specific yes/no/unknown event questions, date policies, sources and exact rule/question identities for a material supplier. Requires a customer key; no delivery dates needed. Discovery does not consume calculation quota. A 503 means the reviewed source is unavailable. Approval of research alone does not activate a scope.",
+    description: "Returns the current supplier-events-v3 scope support, jurisdiction-specific yes/no/unknown event questions, date policies, optional recurring_notice_intake descriptor, sources and exact rule/question identities for a material supplier. Requires a customer key; no delivery dates needed. Discovery does not consume calculation quota. A 503 means the reviewed source is unavailable. Approval of research alone does not activate a scope.",
     inputSchema: v3Scope,
     annotations: { title: "Discover supplier project questions", ...READ_ONLY },
   }, async args => {
@@ -233,12 +240,20 @@ export function buildServer(options: ServerOptions): McpServer {
 
   server.registerTool("calculate_supplier_deadlines_v3", {
     title: "Calculate from discovered supplier facts",
-    description: "Evaluates supplier-events-v3 project facts against the exact discovered rule and question identities. Returns independent notice and lien outcomes with sources and an exact nested input echo. Only calculated outcomes contain calculated deadline dates; review candidates remain unresolved. An optional preliminary_notice.notice_duties collection contains independently required named notices, each with its own calculated date, explanation and sources; the legacy preliminary date is only their earliest summary. Report every validated duty without inferring duties from candidates or treating one notice as satisfying all duties. A separate optional preliminary_notice.planned_notice_targets collection contains qualified intent planning targets with their target dates, assumed filing dates, full ten- or thirty-day intervals, explanations and sources. Planning targets do not establish statutory expirations, actual filing, notice completion or scheduled notifications. An optional verified action_by is a Conservative action date planning target under qualified review; the statutory deadline and countdown remain unresolved, with explanation, sources and warnings. Stale identities return 409, unavailable reviewed sources return 503. Requires a customer key and consumes one plan calculation unit. No project is saved, notice sent or lien filed.",
+    description: "Evaluates supplier-events-v3 project facts against the exact discovered rule and question identities. Returns independent notice and lien outcomes with sources and an exact nested input echo. Only calculated outcomes contain calculated deadline dates; review candidates remain unresolved. An optional preliminary_notice.notice_duties collection contains independently required named notices, each with its own calculated date, explanation and sources; the legacy preliminary date is only their earliest summary. Report every validated duty without inferring duties from candidates or treating one notice as satisfying all duties. A separate optional preliminary_notice.planned_notice_targets collection contains qualified intent planning targets with their target dates, assumed filing dates, full ten- or thirty-day intervals, explanations and sources. Planning targets do not establish statutory expirations, actual filing, notice completion or scheduled notifications. An optional verified action_by is a Conservative action date planning target under qualified review; the statutory deadline and countdown remain unresolved, with explanation, sources and warnings. Optional recurring_notice_facts supplies actual Tennessee furnished months or New Hampshire account records. Tennessee recurring_notice_periods cover entered periods only, including paid and unknown states; known unpaid duties remain independent. New Hampshire recurring_notice_checkpoints are advisory check-ins with unresolved legal status, not legal deadlines, service, completion or scheduled reminders; they do not reset earlier gaps. Never infer intervening months or blanket completion. Stale identities return 409, unavailable reviewed sources return 503. Requires a customer key and consumes one plan calculation unit. No project is saved, notice sent or lien filed.",
     inputSchema: {
       ...v3Scope,
       rules_source: z.object({ schema_version: z.enum(["state-rules-v1", "state-rules-v2"]), source_version: z.string(), source_hash: digest, reviewed_commit: z.string().regex(/^[0-9a-f]{40}$/), supplier_engine_version: z.string(), implementation_manifest_hash: digest }).strict().describe("Exact rules_source from discovery for this scope."),
       questions_identity: z.object({ questions_version: z.literal("supplier-questions-v1"), question_set_hash: digest }).strict().describe("Exact questions_identity from discovery."),
       events: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), z.object({ answer: z.enum(["yes", "no", "unknown"]), date: isoDate.optional() }).strict()).describe("Discovered event IDs only; missing means unknown. Date only for yes and only where the question permits it. Invoice dates are not furnishing dates."),
+      recurring_notice_facts: z.discriminatedUnion("kind", [
+        z.object({ version: z.literal("supplier-recurring-facts-v1"), kind: z.literal("tn_monthly_nonpayment"),
+          months: z.array(z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+            unpaid: z.enum(["yes", "no", "unknown"]), retainage_only: z.enum(["yes", "no", "unknown"]) }).strict()).min(1).max(16) }).strict(),
+        z.object({ version: z.literal("supplier-recurring-facts-v1"), kind: z.literal("nh_written_account"),
+          accounts: z.array(z.object({ id: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/),
+            covered_through: isoDate, supplied_date: isoDate }).strict()).max(16) }).strict(),
+      ]).optional().describe("Only when discovery returns a matching recurring_notice_intake descriptor. Actual recurring facts only: Tennessee entered furnished months with unpaid and retainage-only answers, or New Hampshire actual written accounts with coverage and supplied dates. Omission retains legacy behavior; unknown answers require review. Do not infer intervening months or actual notice from a plan. NH actual owner notice belongs in the discovered nh_owner_notice_given event."),
     },
     annotations: { title: "Calculate from discovered supplier facts", ...READ_ONLY, readOnlyHint: false, idempotentHint: false },
   }, async args => {

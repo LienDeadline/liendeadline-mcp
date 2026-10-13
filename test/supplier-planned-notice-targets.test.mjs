@@ -183,7 +183,7 @@ test('API adapter preserves qualified plans exactly and rejects malformed presen
   await assert.rejects(() => calculateSupplierDeadlinesV3(BASE, input, KEY), /no dates/);
 });
 
-test('MCP protocol reports planning assumptions separately without changing tool inputs or inventory', async t => {
+test('MCP protocol reports planning assumptions with additive recurring input and unchanged tool inventory', async t => {
   const body = plannedResult(), input = body.inputs;
   t.mock.method(globalThis, 'fetch', async () => Response.json(body));
   const server = buildServer({ includeCustomerTools: false, customerApiKey: KEY });
@@ -196,7 +196,7 @@ test('MCP protocol reports planning assumptions separately without changing tool
       'calculate_supplier_deadlines_v3', 'get_state_lien_guide', 'list_state_lien_guides']);
     const tool = tools.find(x => x.name === 'calculate_supplier_deadlines_v3');
     assert.deepEqual(Object.keys(tool.inputSchema.properties).sort(),
-      ['state', 'project_type', 'hired_by', 'rules_source', 'questions_identity', 'events'].sort());
+      ['state', 'project_type', 'hired_by', 'rules_source', 'questions_identity', 'events', 'recurring_notice_facts'].sort());
     assert.match(tool.description, /planned_notice_targets/);
     assert.match(client.getInstructions(), /assumed filing date, full ten- or thirty-day interval/);
     assert.match(client.getInstructions(), /Earlier actual filing requires the full interval/);
