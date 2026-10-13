@@ -40,6 +40,16 @@ export type SupplierNoticeDutyV3 = {
   deadline: string; days_from_now: number;
   event_ids: string[]; source_ids: string[];
 };
+export type SupplierNoticePlanBasisV3 = {
+  kind: "policy_earlier_filing_target";
+  assumed_filing_date: string; minimum_interval_days: 10 | 30;
+};
+export type SupplierPlannedNoticeTargetV3 = {
+  id: string; name: string; description: string;
+  status: "planning_target"; target_date: string;
+  basis: SupplierNoticePlanBasisV3;
+  event_ids: string[]; source_ids: string[];
+};
 export type SupplierDeadlineV3 = {
   name: string; status: "calculated" | "not_required" | "no_lien_right" | "awaiting_final_delivery" | "review_required";
   deadline: string | null; days_from_now: number | null; required: boolean | null;
@@ -47,6 +57,7 @@ export type SupplierDeadlineV3 = {
   action_by?: string; // Explicit planning target; the statutory deadline remains unresolved.
   candidate_deadlines?: { id: string; date: string; source_ids: string[] }[];
   notice_duties?: SupplierNoticeDutyV3[];
+  planned_notice_targets?: SupplierPlannedNoticeTargetV3[];
 };
 export type SupplierResultV3 = {
   contract_version: typeof SUPPLIER_V3; status: "calculated" | "no_lien_right" | "awaiting_final_delivery" | "review_required";
@@ -110,6 +121,33 @@ function noticeDuties(value: unknown, parent: Record<string, unknown>, request: 
   })) return false;
   return parent.deadline === value.reduce((earliest, duty) => duty.deadline < earliest ? duty.deadline : earliest, value[0].deadline);
 }
+function plannedNoticeTargets(value: unknown, parent: Record<string, unknown>, request: SupplierRequestV3,
+  sources: Set<string>): value is SupplierPlannedNoticeTargetV3[] {
+  if (parent.status !== "calculated" || parent.required !== true || !isCivilDateV3(parent.deadline) ||
+    !Array.isArray(parent.notice_duties) || parent.notice_duties.length === 0 ||
+    !Array.isArray(value) || value.length === 0 || value.length > 16) return false;
+  const keys = ["id", "name", "description", "status", "target_date", "basis", "event_ids", "source_ids"];
+  const basisKeys = ["kind", "assumed_filing_date", "minimum_interval_days"];
+  const ids = new Set(parent.notice_duties.map(d => (d as SupplierNoticeDutyV3).id));
+  const planText = (v: unknown): v is string => typeof v === "string" && v.length > 0 && [...v].length <= 2000;
+  const events = parent.event_ids as string[], parentSources = parent.source_ids as string[];
+  return value.every(p => {
+    if (!record(p) || Object.keys(p).length !== keys.length || !keys.every(k => Object.hasOwn(p, k)) ||
+      !eventId(p.id) || ids.has(p.id) || !planText(p.name) || !planText(p.description) ||
+      p.status !== "planning_target" || !isCivilDateV3(p.target_date) || !record(p.basis) ||
+      Object.keys(p.basis).length !== basisKeys.length || !basisKeys.every(k => Object.hasOwn(p.basis as object, k)) ||
+      p.basis.kind !== "policy_earlier_filing_target" || !isCivilDateV3(p.basis.assumed_filing_date) ||
+      (p.basis.minimum_interval_days !== 10 && p.basis.minimum_interval_days !== 30) ||
+      (Date.parse(p.basis.assumed_filing_date) - Date.parse(p.target_date)) / 86400000 < p.basis.minimum_interval_days ||
+      !texts(p.event_ids) || p.event_ids.length === 0 || p.event_ids.length > 64 || new Set(p.event_ids).size !== p.event_ids.length ||
+      !p.event_ids.every(id => eventId(id) && events.includes(id) && Object.hasOwn(request.events, id) &&
+        ["yes", "no"].includes(request.events[id].answer)) ||
+      !Array.isArray(p.source_ids) || !p.source_ids.every(planText) || p.source_ids.length === 0 || p.source_ids.length > 64 ||
+      new Set(p.source_ids).size !== p.source_ids.length ||
+      !p.source_ids.every(id => sources.has(id) && parentSources.includes(id))) return false;
+    ids.add(p.id); return true;
+  });
+}
 export function isSupplierScopeV3(v: unknown): v is SupplierScopeV3 {
   return record(v) && Object.keys(v).length === 5 && v.contract_version === SUPPLIER_V3 &&
     typeof v.state === "string" && /^[A-Za-z]{2}$/.test(v.state) && STATES.has(v.state.toUpperCase()) && v.role === "supplier" &&
@@ -142,7 +180,7 @@ export function isSupplierDiscovery(v: unknown, scope: SupplierScopeV3): v is Su
   });
 }
 export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is SupplierResultV3 {
-  if (!record(v) || Object.hasOwn(v, "action_by") || Object.hasOwn(v, "notice_duties") || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
+  if (!record(v) || Object.hasOwn(v, "action_by") || Object.hasOwn(v, "notice_duties") || Object.hasOwn(v, "planned_notice_targets") || v.contract_version !== SUPPLIER_V3 || v.role !== "supplier" || v.state_code !== request.state.toUpperCase() ||
     !exactJson(v.inputs, request) || !exactJson(v.rules_source, request.rules_source) || !exactJson(v.questions_identity, request.questions_identity) ||
     !isCivilDateV3(v.as_of_date) || !citations(v.sources) || !texts(v.critical_warnings) || !text(v.disclaimer)) return false;
   const sources = new Set(v.sources.map(s => s.id)), asOf = Date.parse(v.as_of_date);
@@ -153,6 +191,7 @@ export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is
     if (!record(d) || !text(d.name) || !text(d.description) || !text(d.reason_code) || !texts(d.event_ids) ||
       !d.event_ids.every(id => eventId(id)) || !texts(d.source_ids) || !d.source_ids.every(id => sources.has(id))) return false;
     if (Object.hasOwn(d, "notice_duties") && (index !== 0 || !noticeDuties(d.notice_duties, d, request, sources, asOf))) return false;
+    if (Object.hasOwn(d, "planned_notice_targets") && (index !== 0 || !plannedNoticeTargets(d.planned_notice_targets, d, request, sources))) return false;
     if (d.candidate_deadlines !== undefined && (!Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length > 16 || (d.candidate_deadlines.length > 0 && !["calculated", "review_required"].includes(String(d.status))) ||
       new Set(d.candidate_deadlines.map(c => record(c) ? c.id : undefined)).size !== d.candidate_deadlines.length ||
       !d.candidate_deadlines.every(c => record(c) && eventId(c.id) && isCivilDateV3(c.date) && texts(c.source_ids) && c.source_ids.length > 0 && c.source_ids.every(id => sources.has(id))))) return false;
