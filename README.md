@@ -11,6 +11,8 @@
   <a href="https://github.com/LienDeadline/liendeadline-mcp/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
+[![LienDeadline MCP server](https://mcprush.com/badge/liendeadline-mcp/card.svg)](https://mcprush.com/to/liendeadline-mcp?ref=badge)
+
 **Ask your AI assistant when your preliminary notice and mechanics lien deadlines fall, and get the statute behind every date.**
 This MCP server connects Claude, ChatGPT, Cursor, VS Code and any other MCP client to
 [LienDeadline](https://liendeadline.com/?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp), the deadline engine for US construction material suppliers.
