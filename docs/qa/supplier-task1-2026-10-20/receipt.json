@@ -1,0 +1,52 @@
+{
+  "observed_at": "2026-10-20T15:36:39.472486+00:00",
+  "api_commit": "31aa6651ba8d574c78b53deca593bab67484580f",
+  "synthetic_approval_only": true,
+  "synthetic_rules_identity": {
+    "schema_version": "state-rules-v2",
+    "source_version": "2026-10-20.10",
+    "source_hash": "98b5f16cb12fcbaa6aa63bd980fca26772a0c5772f6374bae962b55cd0c9f67a",
+    "reviewed_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "supplier_engine_version": "supplier-engine-v2",
+    "implementation_manifest_hash": "d0369cffd2a0181795aac1830e695233c94460d954c31a6f9ed2a4c97dfd491b"
+  },
+  "limits": [
+    "Offline fixtures and local checks only; no hosted CI or live customer/legal acceptance.",
+    "No merge, deployment, migration, policy promotion or 2027-event enablement."
+  ],
+  "mcp_baseline": "38cadf0a44f9eb9f6e96c9b0c74591d490273d22",
+  "change": "Explicit RI 200-day confirmation guidance in public instructions and v3 calculation tool; generic event/request/result schema unchanged.",
+  "fixtures": [
+    {
+      "path": "test/fixtures/supplier_task1_v1.json",
+      "sha256": "7a99d9a4160374795b6262e997018ca7818741d56aeceac0f18f05f2876ca0a5",
+      "size_bytes": 4142763
+    },
+    {
+      "path": "test/fixtures/supplier_task1_ready14_v1.json",
+      "sha256": "d266e254480cae05be876726ea0c49a3b27458a9b1bcaf7b9b3c0a8bcdd4b7be",
+      "size_bytes": 3372774
+    }
+  ],
+  "fail_before": {
+    "baseline": "38cadf0a44f9eb9f6e96c9b0c74591d490273d22",
+    "test": "test/supplier-task1-guidance.test.mjs",
+    "passed": 0,
+    "failed": 1,
+    "assertion": "Missing ri_mailed_within_200_days in MCP public instructions/tool guidance."
+  },
+  "pass_after": {
+    "command": "node --experimental-transform-types --test test/supplier-task1-api-fixtures.test.mjs test/supplier-task1-guidance.test.mjs",
+    "passed": 181,
+    "failed": 0,
+    "transport": "Mocked, preserving actual full-evaluator outputs and exact requests; no network calls.",
+    "typecheck": "npm run typecheck passed; parent owns final commit-bound full quality run."
+  },
+  "source": [
+    {
+      "path": "src/server.ts",
+      "sha256": "fe6a86e714e1735b4ade755791d9fcfb97999abe3e8c5687d2cc5ed6fe4ba158",
+      "size_bytes": 25779
+    }
+  ]
+}
