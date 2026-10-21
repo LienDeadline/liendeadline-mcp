@@ -41,17 +41,23 @@ who hired you. LienDeadline turns your delivery dates into those deadlines and s
   back as "needs review", with the reason.
 - **Lien guides for all 50 states and DC.** Rule summaries, deadline tables and common questions,
   with statute citations.
-- **Safe by design.** Calculations consume plan usage. Nothing sends notices, files liens or makes payments,
-  and you need no account or API key.
+- **Safe by design.** Supplier discovery and calculations require a caller customer key; completed
+  calculations consume plan allowance. Public guides need no account or key. Nothing sends
+  notices, files liens or makes payments.
 
 <a name="hosted-endpoint"></a>
 ## Quick start
 
-The hosted server needs no install, account or key:
+Connecting to the hosted server and using public guides needs no install, account or key:
 
 ```
 https://mcp.liendeadline.com/mcp
 ```
+
+The no-authentication connection settings below cover the transport and public guides. Supplier
+discovery and calculations require the caller's dedicated customer key through the client's
+approved credential settings. Discovery does not consume calculation allowance; completed
+calculations do.
 
 | Client | How to add it |
 | --- | --- |
@@ -135,8 +141,8 @@ Try asking:
 
 | What | Where | Needs |
 | --- | --- | --- |
-| Calculated supplier deadlines | Florida and Kansas private projects | Nothing |
-| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Nothing |
+| Calculated supplier deadlines | Florida and Kansas private projects | Customer key; plan allowance for calculations |
+| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Customer key; plan allowance for calculations |
 | Lien guides | All 50 states and DC | Nothing |
 | Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
