@@ -135,8 +135,8 @@ Try asking:
 
 | What | Where | Needs |
 | --- | --- | --- |
-| Calculated supplier deadlines | Florida and Kansas private projects | Nothing |
-| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Nothing |
+| Calculated supplier deadlines | Florida and Kansas private projects | Customer key; plan allowance for calculations |
+| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Customer key; plan allowance for calculations |
 | Lien guides | All 50 states and DC | Nothing |
 | Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
