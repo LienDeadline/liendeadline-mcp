@@ -1,15 +1,18 @@
 # Customer API tools
 
-Two tools call LienDeadline's customer API and need a customer API key. Every other tool in this
-server is public and works without a key.
+Two invoice tools call LienDeadline's customer API and need a customer API key. Supplier discovery
+and calculations also require a dedicated caller key; completed calculations consume API plan
+allowance. State-guide tools remain public without a key.
 
 | Tool | Key scope | What it does |
 | --- | --- | --- |
 | `calculate_lien_deadline` | `deadline:calculate` | Deadlines for one invoice, from its invoice date and state |
 | `list_supported_states` | `states:read` | The jurisdictions the invoice calculation accepts |
 
-These tools run only in the local npm package. The hosted endpoint,
-`https://mcp.liendeadline.com/mcp`, never registers them and never sends a key.
+These invoice tools run only in the local npm package. The hosted endpoint,
+`https://mcp.liendeadline.com/mcp`, never registers the invoice tools. For supplier tools, hosted
+requests may carry the caller's dedicated `Authorization: Bearer <key>` header; that key is
+forwarded only for that exchange. A shared server environment key is not used in hosted mode.
 
 The invoice calculation is a separate contract from the supplier delivery-event tools. A key
 doesn't add states to the supplier calculation.
@@ -25,7 +28,8 @@ won't work.
 
 ## Add the key
 
-Set `LIENDEADLINE_API_KEY` in the MCP server's environment, ideally from a local secret launcher.
+For the local invoice tools, set `LIENDEADLINE_API_KEY` in the MCP server's environment, ideally
+from a local secret launcher. Local supplier tools use the same dedicated environment key.
 In a JSON config, the key goes in the server's `env` block:
 
 ```json
@@ -44,23 +48,26 @@ The placeholder isn't a credential. In Claude Desktop, the `.mcpb` bundle asks f
 optional, sensitive setting.
 
 Treat any config that holds a real key as a secret. Don't commit it, share it or paste it into
-support requests. Keys must never appear in URLs, tool arguments or browser storage.
+support requests. Keys must never appear in URLs or browser storage. Invoice tools take their
+key only from the server environment, never tool arguments. Supplier calls use the caller-key
+path described in [the hosted guide](HOSTED.md); never paste key values into prompts.
 
 To rotate or revoke a key, replace it and restart the MCP server.
 
 ## How the key is sent
 
-- The customer tools send `Authorization: Bearer <key>` only to
+- The invoice tools send `Authorization: Bearer <key>` only to
   `https://secure-api-v1.liendeadline.com`, through `POST /api/v1/calculate-deadline` and
   `GET /api/v1/supported-states`.
 - There's no anonymous demo fallback. A missing or malformed key fails locally, before any
   request is made.
-- `LIENDEADLINE_API_URL` can point the public tools at another bare HTTP(S) origin. The customer
-  tools refuse every origin except the production API, including staging, other ports and plain
-  HTTP.
+- `LIENDEADLINE_API_URL` can point public state-guide tools at another bare HTTP(S) origin.
+  Protected invoice and supplier tools refuse every origin except the production API, including
+  staging, other ports and plain HTTP.
 - Origins with credentials, paths, queries or fragments are rejected. No request follows a
   redirect.
-- The public tools never send credentials.
+- State-guide tools never send credentials. Supplier calls send only the caller-scoped key to
+  the pinned API origin; discovery does not consume a calculation unit.
 
 ## Errors
 
@@ -68,6 +75,7 @@ To rotate or revoke a key, replace it and restart the MCP server.
 | --- | --- | --- |
 | `401` | The key is expired, rotated or revoked | Replace the key and restart the server |
 | `403` | The key lacks this endpoint's scope, or the account lost access | Check the key's scopes and the account |
+| `402` | API plan or calculation allowance is unavailable | Check the plan or remaining allowance |
 | `429` | Rate limit reached | Retry later |
 | `503` | The customer API is unavailable | Retry later |
 
