@@ -19,17 +19,17 @@ request or log.
 
 ## Develop locally
 
-You need Node.js 22.23 or newer.
+Use a Node.js runtime satisfying `package.json` (22.22 or newer). The shared
+[Ops local runner](../liendeadline-ops/docs/local-ci.md) supplies the locked runtime.
 
 ```bash
 npm ci --ignore-scripts
-npm run build
-npm run typecheck
-npm test
+bash scripts/check-local.sh
 ```
 
 Tests use synthetic credentials and mocked HTTP. They don't call the LienDeadline API or need
-secrets, and neither do pull-request CI and the scheduled checks.
+secrets. GitHub Actions and their schedules are removed; source checks run locally.
+[Local check coverage](docs/LOCAL_CHECKS.md) maps every former job to its replacement.
 
 To run the local stdio server from a build, point an MCP client at `node dist/index.js`.
 
@@ -42,7 +42,7 @@ LIENDEADLINE_RUN_LIVE_SMOKE=1 npm run smoke
 ```
 
 It runs the public tools, and runs the customer tools only when `LIENDEADLINE_API_KEY` is also
-set. Don't use a real customer key for routine CI or unapproved live checks.
+set. Don't use a real customer key for routine local checks or unapproved live checks.
 
 With `LIENDEADLINE_MCP_URL` set, the smoke checks that Streamable HTTP endpoint instead of
 starting the stdio server, and requires exactly the five public tools.
@@ -69,7 +69,7 @@ tools. [docs/HOSTED.md](docs/HOSTED.md) covers its limits, logging, analytics an
 
 ## Pull requests
 
-- Keep each change focused, and run `npm run typecheck` and `npm test` before you push.
+- Keep each change focused, and run `bash scripts/check-local.sh` before you push.
 - Tool titles, descriptions and schemas are what AI assistants read. Keep them accurate, and
   don't describe coverage that isn't live.
 - Every tool must stay read-only.
@@ -78,7 +78,7 @@ tools. [docs/HOSTED.md](docs/HOSTED.md) covers its limits, logging, analytics an
 
 ## Releases
 
-Maintainers cut releases by tagging `main`. [RELEASING.md](RELEASING.md) lists every file that
+Maintainers publish releases manually from an approved tagged `main` commit. [RELEASING.md](RELEASING.md) lists every file that
 carries the version, and the publishing steps for npm, the MCP Registry and the `.mcpb` bundles.
 
 ## License
