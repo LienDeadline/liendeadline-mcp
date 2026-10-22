@@ -162,7 +162,7 @@ public repository and the Cloud Build upload.
 ## Delivery pipeline
 
 A secret-backed GitHub push webhook starts Cloud Build only for this repository's `main` branch;
-pull-request CI has no deployment credentials. The webhook authentication material, inline build
+the local source-check environment has no deployment credentials. The webhook authentication material, inline build
 configuration and dedicated build identity are managed privately, outside this public repository.
 The runtime identity has no broad project roles. If analytics uses Secret Manager, grant access
 only to its capture-token secret. The build identity can write only this
@@ -175,18 +175,25 @@ must pass health, MCP tool discovery, representative tool calls and CORS checks 
 named revision receives traffic. Promotion also requires the tested commit to remain current
 `main`. A failed candidate leaves the serving revision in place.
 
-GitHub doesn't retry a failed webhook delivery, so a push that Cloud Build rejects (for example
-with a `503`) leaves the endpoint on the previous version without any error. The
-[hosted-drift workflow](../.github/workflows/hosted-drift.yml) checks for this every three hours
-and on demand. It reads `version` from `package.json` on `main`, sends an MCP `initialize` to
-`https://mcp.liendeadline.com/mcp` and compares `result.serverInfo.version`. When the versions
-differ and the newest `main` commit is more than 45 minutes old, the run fails with both versions
-and the `main` SHA. A request that fails twice, 30 seconds apart, also fails the run. GitHub's
-failed-run email is the alert. The workflow uses no secrets and has read-only repository access.
+GitHub does not retry a failed webhook delivery, so a rejected build can leave the endpoint
+on the previous version. GitHub Actions and their drift schedule are removed. For an explicitly
+authorized public version check, run this locally:
 
-The check compares version numbers, so it catches a missed deploy of a release commit, not of a
-`main` change that keeps the version. When it fails, the operator re-runs the build for current
-`main` through the private operations procedure, then confirms that the next run passes.
+```bash
+LIENDEADLINE_RUN_HOSTED_DRIFT=1 bash scripts/check-hosted-drift.sh
+```
+
+The script compares the endpoint with the locally available `origin/main` ref; refresh that ref
+when the authorized task needs the latest remote commit. `EXPECTED_REF` can select a reviewed ref.
+It reports the expected SHA/version and served version, allows a 45-minute deployment grace
+period, and retries a failed request once after 30 seconds. `MCP_URL`, `GRACE_MINUTES` and
+`RETRY_DELAY_SECONDS` retain the former job's controls. No customer key is sent. This check is
+excluded from the default local source gate and has no recurring schedule or GitHub email alert.
+
+Version comparison catches a missed release-version deployment; it does not prove that a commit
+with an unchanged version is serving. A deployment retry remains a separately authorized operation
+through the private Ops procedure. Removing Actions does not change the existing Cloud Build
+webhook or grant authority to deploy.
 
 ## PostHog analytics
 
