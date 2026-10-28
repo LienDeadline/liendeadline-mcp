@@ -10,8 +10,8 @@
       "license": "MIT",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.0",
-        "@posthog/mcp": "0.22.3",
-        "posthog-node": "5.55.2",
+        "@posthog/mcp": "0.23.0",
+        "posthog-node": "5.56.2",
         "zod": "^4.6.5"
       },
       "bin": {
@@ -78,21 +78,21 @@
       }
     },
     "node_modules/@posthog/core": {
-      "version": "1.58.0",
-      "resolved": "https://registry.npmjs.org/@posthog/core/-/core-1.58.0.tgz",
-      "integrity": "sha512-vluXIlVF6WGeHoQbsQK8Y1ywXZlJDU7YHEKiXAArQU38yFBpgxxfD0kInbYHtura4Fr7Z7H8WiDFvtMpCGehGg==",
+      "version": "1.59.1",
+      "resolved": "https://registry.npmjs.org/@posthog/core/-/core-1.59.1.tgz",
+      "integrity": "sha512-P39YgzQVDh6oz6wAzQXEnoHgTYpM7gifonmVKq1scAJco79h31XmmNVurRq9tTmmyIrr1uX8FHT0riCsyfV9AQ==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/types": "^1.415.2"
+        "@posthog/types": "^1.416.0"
       }
     },
     "node_modules/@posthog/mcp": {
-      "version": "0.22.3",
-      "resolved": "https://registry.npmjs.org/@posthog/mcp/-/mcp-0.22.3.tgz",
-      "integrity": "sha512-ZO2+f/PxHdsbVwwtihBTvqMP7dkKDNnZJCxYD/MxS7BT1I6SCSVodwQ5NtaTxmYUdBzJptXQ9kVdbRJtOUaVlg==",
+      "version": "0.23.0",
+      "resolved": "https://registry.npmjs.org/@posthog/mcp/-/mcp-0.23.0.tgz",
+      "integrity": "sha512-pGWHFn3gXVcThM/fF8QgHf01SBdwQgOgv+HmWhMEzR63iJdCsy8sfD+b2ZTU0ZODAeTMmbwzRvJLc371/WWjvQ==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/core": "^1.57.3"
+        "@posthog/core": "^1.59.1"
       },
       "engines": {
         "node": "^20.20.0 || >=22.22.0"
@@ -112,9 +112,9 @@
       }
     },
     "node_modules/@posthog/types": {
-      "version": "1.415.2",
-      "resolved": "https://registry.npmjs.org/@posthog/types/-/types-1.415.2.tgz",
-      "integrity": "sha512-BIIHPyXcPZuNTImrR1qLqLKFw7j9o8co6LG/9OpLtpWJ3RT0y89Lx6VCtd37N9/dkr/qW7y0uPjJxAxjsALHtw==",
+      "version": "1.416.0",
+      "resolved": "https://registry.npmjs.org/@posthog/types/-/types-1.416.0.tgz",
+      "integrity": "sha512-0/9+02s/0uDyrH4G/qUg1yyl6gXUg8Uuxw/PlDad3KLzo9FFS9zS/kAQaEshx/saVGupj1aAy/4EUBxWisBogw==",
       "license": "MIT"
     },
     "node_modules/@types/node": {
@@ -1261,20 +1261,24 @@
       }
     },
     "node_modules/posthog-node": {
-      "version": "5.55.2",
-      "resolved": "https://registry.npmjs.org/posthog-node/-/posthog-node-5.55.2.tgz",
-      "integrity": "sha512-iDAleFns2KSEr67i1/DQ5qxseJHp5t3zhk6UHr+48vualuB1QvresneO25Qmv29fzTDmunS/JCPNcpaP9/QmKg==",
+      "version": "5.56.2",
+      "resolved": "https://registry.npmjs.org/posthog-node/-/posthog-node-5.56.2.tgz",
+      "integrity": "sha512-1/qYFNuHkDJJuDHjAvozN/fH/+XdqzlIZ0WCsCYrhUgGNxDBw5M3kZaJaRX0YSPi9tn7PnZFD5eTXg2Z7m5LeQ==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/core": "^1.58.0"
+        "@posthog/core": "^1.59.1"
       },
       "engines": {
         "node": "^20.20.0 || >=22.22.0"
       },
       "peerDependencies": {
+        "@opentelemetry/api": "^1.2.0",
         "rxjs": "^7.0.0"
       },
       "peerDependenciesMeta": {
+        "@opentelemetry/api": {
+          "optional": true
+        },
         "rxjs": {
           "optional": true
         }
@@ -1647,9 +1651,9 @@
       "license": "ISC"
     },
     "node_modules/zod": {
-      "version": "4.6.6",
-      "resolved": "https://registry.npmjs.org/zod/-/zod-4.6.6.tgz",
-      "integrity": "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==",
+      "version": "4.6.7",
+      "resolved": "https://registry.npmjs.org/zod/-/zod-4.6.7.tgz",
+      "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==",
       "license": "MIT",
       "funding": {
         "url": "https://github.com/sponsors/colinhacks"
