@@ -37,7 +37,7 @@ who hired you. LienDeadline turns your delivery dates into those deadlines and s
   and last delivery and a few yes, no or unknown questions.
 - **The statute behind every date.** Each deadline cites its source, so your team and your
   counsel can check it.
-- **Never a guessed date.** Missing facts, states that aren't covered yet and public projects come
+- **Never a guessed date.** Missing facts and unsupported project scopes come
   back as "needs review", with the reason.
 - **Lien guides for all 50 states and DC.** Rule summaries, deadline tables and common questions,
   with statute citations.
@@ -67,7 +67,7 @@ calculations do.
 | **VS Code** | [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_LienDeadline-0098FF)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522liendeadline%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fmcp.liendeadline.com%252Fmcp%2522%257D) |
 | **ChatGPT** | Open **Plugins**, select **+** → **Add custom MCP server**, paste the URL above and choose **No authentication**. |
 | **Codex CLI** | `codex mcp add liendeadline --url https://mcp.liendeadline.com/mcp` |
-| **Any MCP client** | Streamable HTTP at the URL above, no authentication. |
+| **Any MCP client** | Streamable HTTP at the URL above. Public guides need no authentication; supplier tools need a customer key. |
 
 Want your agent to ask the right questions too? The
 [LienDeadline agent skill](https://liendeadline.com/agent-skill?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-mcp) ([GitHub](https://github.com/LienDeadline/skills)) teaches it which facts to collect.
@@ -141,13 +141,16 @@ Try asking:
 
 | What | Where | Needs |
 | --- | --- | --- |
-| Calculated supplier deadlines | Florida and Kansas private projects | Customer key; plan allowance for calculations |
-| More states (v3 tools) | Added as each state's reviewed rules are released. Until then, the v3 tools return an error and no date. | Customer key; plan allowance for calculations |
+| Supplier discovery and calculations (v3) | Current jurisdiction-specific scope support from `get_supplier_questions`; start here for the state, project type and hiring relationship | Customer key; discovery uses no calculation allowance; completed calculations consume allowance |
+| Delivery-event baselines (v2) | Florida and Kansas private projects | Customer key; completed calculations consume allowance |
 | Lien guides | All 50 states and DC | Nothing |
 | Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
-When LienDeadline can't calculate a date, because of a public project, a state that isn't covered
-or a fact you don't know, it returns `review_required` with the reason instead of a date.
+The [website calculator](https://liendeadline.com) and v3 tools cover more jurisdictions than the
+v2 Florida/Kansas baseline. V3 discovery reports the current supported scope and its rule
+identities; a guide, research approval or state name alone does not establish a calculated date.
+When a scope or fact needs qualified review, the result explains why. An unavailable reviewed
+source returns an error with no date.
 
 ## How it works
 
@@ -174,7 +177,8 @@ Inputs, outputs and statuses are in the [tool reference](https://github.com/Lien
 
 ## Privacy and safety
 
-- **Account usage.** Supplier calculations require a customer key and consume plan allowance.
+- **Account usage.** Supplier discovery and calculations require a customer key. Discovery uses
+  no calculation allowance; completed calculations consume plan allowance.
   Hosted callers send their own `Authorization: Bearer <key>` on each request; local callers
   set `LIENDEADLINE_API_KEY`. The hosted server never uses a service-wide key. State guides remain public.
 - **What's sent.** The facts you give (state, dates, project type, who hired you and your yes, no

@@ -3,19 +3,20 @@
 This is the precise reference for the LienDeadline MCP tools: inputs, results, statuses and the
 checks the server runs. For setup, see the [README](../README.md).
 
-The server has seven tools. Calculations consume plan allowance; guide reads do not. None sends a
+The server has seven tools. Supplier discovery and calculations require a customer key.
+Discovery consumes no calculation allowance; completed calculations consume allowance; guides are public. None sends a
 notice, files a lien or makes a payment. Every tool is annotated `readOnlyHint: true`,
 `destructiveHint: false`, `idempotentHint: true` and `openWorldHint: true`.
 
 | Server | Tools | Key |
 | --- | --- | --- |
-| Hosted endpoint, `https://mcp.liendeadline.com/mcp` | The five public tools | None |
-| Local npm package (`npx -y liendeadline-mcp`, stdio) | The five public tools and the two customer tools | Customer tools only. See [CUSTOMER-API.md](CUSTOMER-API.md). |
+| Hosted endpoint, `https://mcp.liendeadline.com/mcp` | Three supplier tools and two public guide tools | Customer key for supplier tools; none for guides |
+| Local npm package (`npx -y liendeadline-mcp`, stdio) | The five hosted tools and two invoice tools | Customer key for supplier and invoice tools; none for guides. See [CUSTOMER-API.md](CUSTOMER-API.md). |
 
-Both servers define the public tools with the same code, so their names, descriptions and schemas
+Both servers define the guide and supplier tools with the same code, so their names, descriptions and schemas
 match. [HOSTED.md](HOSTED.md) covers the hosted transport. When a client connects, both servers
 also send usage guidance in the MCP `instructions` field. The hosted server leaves out the part
-about customer tools.
+about the local-only invoice tools.
 
 Results are calculated baselines, not legal advice.
 
@@ -36,8 +37,8 @@ Also on this page: [statuses at a glance](#statuses-at-a-glance),
 | See which jurisdictions the invoice calculation accepts | [`list_supported_states`](#list_supported_states) | Local package and customer key only. |
 
 The server instructions tell agents to start a jurisdiction-specific question with
-`get_supplier_questions`. A 503 from discovery means the reviewed v3 rules for that request are
-not released yet. `calculate_supplier_deadlines` still covers Florida and Kansas private projects.
+`get_supplier_questions`. A 503 from discovery means the reviewed source or service is
+unavailable for that request; it does not establish whether a state has been released. `calculate_supplier_deadlines` still covers Florida and Kansas private projects.
 
 ## Conventions
 
@@ -217,10 +218,12 @@ calculation evaluates your answers against those exact rules.
 4. If the calculation returns 409, the rules or questions changed after step 1. Start again at
    step 1 and confirm the facts against the new questions.
 
-**Availability.** v3 states are added as each state's reviewed rules are released. Until then, a
-request for that state currently returns a 503 error, with no questions or dates. Neither a 409
-nor a 503 implies coverage. For Florida and Kansas private projects, `calculate_supplier_deadlines`
-remains available.
+**Availability.** V3 supports jurisdiction-specific scopes beyond the Florida/Kansas v2 baseline.
+Call `get_supplier_questions` for the current state, project type and hiring relationship; its
+verified response is the authority for scope support and rule identities. Editorial guides and
+research approvals do not establish calculated coverage. An unavailable reviewed source returns
+503 with no questions or dates; stale calculation identities return 409. Neither error implies
+coverage. For Florida and Kansas private projects, `calculate_supplier_deadlines` remains available.
 
 ### `get_supplier_questions`
 
@@ -454,7 +457,7 @@ If any check fails, the tool returns an error and no dates:
 | Status | Meaning | What to do |
 | --- | --- | --- |
 | 409 | The `rules_source` or `questions_identity` you sent is stale: the rules or the question set changed after discovery. | Call `get_supplier_questions` again, confirm the facts against the new questions and calculate with the new identities. Never reuse stale identities. |
-| 503 | The reviewed rule source, or its implementation, isn't available. Today this means the state's reviewed v3 rules aren't released yet. | Don't infer coverage or a date from it. For Florida and Kansas private projects, use `calculate_supplier_deadlines`. |
+| 503 | The reviewed rule source, its implementation or the service is unavailable for this request. | Don't infer coverage or a date from it. For Florida and Kansas private projects, use `calculate_supplier_deadlines`. |
 
 The tools return these messages:
 
@@ -600,7 +603,7 @@ network error details or the customer key.
 | 404 | No guide exists for that state code. |
 | 409 | Supplier rules changed. Discover the questions again and reconfirm the facts. Don't reuse stale identities. |
 | 429 | The API rate limit was reached. Retry later. |
-| 503 | The service is unavailable and no deadline was calculated. For the v3 tools, this currently means the reviewed rules aren't released yet. |
+| 503 | The service or reviewed source is unavailable and no deadline was calculated. This does not establish statewide release status. |
 
 ### Mismatches are errors, not dates
 
@@ -632,10 +635,10 @@ rather than tool errors. See [HOSTED.md](HOSTED.md).
 | `list_supported_states` | `GET /api/v1/supported-states`, with the customer key |
 
 - The default origin is `https://secure-api-v1.liendeadline.com`.
-- `LIENDEADLINE_API_URL` can point the public tools at another origin. It must be a bare HTTP(S)
+- `LIENDEADLINE_API_URL` can point public state-guide tools at another origin. It must be a bare HTTP(S)
   origin, without credentials, a path, a query or a fragment.
-- The customer tools refuse every origin except `https://secure-api-v1.liendeadline.com`,
+- Supplier and invoice tools refuse every origin except `https://secure-api-v1.liendeadline.com`,
   including staging, other ports and plain HTTP. They send the key only there, in an
   `Authorization: Bearer` header.
-- The public tools never send credentials.
+- Public state-guide tools never send credentials. Supplier and invoice tools send only the caller-scoped customer key.
 - Requests never follow redirects, and they time out after 20 seconds.

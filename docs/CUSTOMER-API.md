@@ -2,7 +2,7 @@
 
 Two invoice tools call LienDeadline's customer API and need a customer API key. Supplier discovery
 and calculations also require a dedicated caller key; completed calculations consume API plan
-allowance. State-guide tools remain public without a key.
+allowance. Discovery consumes no calculation allowance. State-guide tools remain public without a key.
 
 | Tool | Key scope | What it does |
 | --- | --- | --- |
@@ -11,7 +11,7 @@ allowance. State-guide tools remain public without a key.
 
 These invoice tools run only in the local npm package. The hosted endpoint,
 `https://mcp.liendeadline.com/mcp`, never registers the invoice tools. For supplier tools, hosted
-requests may carry the caller's dedicated `Authorization: Bearer <key>` header; that key is
+requests must carry the caller's dedicated `Authorization: Bearer <key>` header; that key is
 forwarded only for that exchange. A shared server environment key is not used in hosted mode.
 
 The invoice calculation is a separate contract from the supplier delivery-event tools. A key

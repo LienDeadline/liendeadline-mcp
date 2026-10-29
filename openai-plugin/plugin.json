@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "liendeadline",
   "version": "1.0.1",
-  "description": "Supplier notice and mechanics lien deadline baselines for Florida and Kansas private projects, plus statute-cited guides for all 50 states and DC. Other supplier calculations require review.",
+  "description": "Supplier notice and lien outcomes using current jurisdiction-specific scope discovery, plus statute-cited lien guides for all 50 states and DC. Supplier tools require a customer key; guides are public.",
   "author": {
     "name": "LienDeadline",
     "email": "support@liendeadline.com",
@@ -23,7 +23,7 @@
       "interface": {
         "displayName": "LienDeadline",
         "shortDescription": "Lien and notice deadlines",
-        "longDescription": "LienDeadline helps construction material suppliers protect their lien rights. Give it a project's delivery dates and facts, and it calculates preliminary notice and lien filing baselines for Florida and Kansas private projects. Each date comes with its statute source and warnings. When a deadline depends on facts that are missing or unverified, or falls outside the available calculation coverage, it says the deadline needs qualified review. Human-reviewed research for additional jurisdictions does not by itself enable their calculations.\n\nIt also returns LienDeadline's editorial mechanics lien guides for all 50 states and DC: rule summaries with statute citations, deadline tables and common questions.\n\nFive public tools are read-only. The jurisdiction-specific discovery tools report current scope support and bind calculations to the returned rule identities; unavailable sources and unresolved facts remain under review. The plugin never sends notices, files liens or makes payments. It needs no account or API key and stores nothing between requests. Results are educational baselines, not legal advice; verify critical deadlines with counsel.",
+        "longDescription": "LienDeadline helps construction material suppliers understand preliminary notice and mechanics lien deadlines. Start with supplier-events-v3 discovery for the project's state, project type and hiring relationship. It reports current scope support, the applicable questions and exact rule identities for the calculation. The separate supplier-events-v2 delivery-event baseline covers Florida and Kansas private projects. Each calculated date includes sources and warnings. Unsupported scopes, unavailable reviewed sources and unresolved facts do not establish a calculated deadline. Research approval and editorial guide availability alone do not establish calculation coverage.\n\nEditorial mechanics lien guides for all 50 states and DC include statute citations, deadline tables and common questions. These two guide tools are public and need no account or API key.\n\nThe three supplier tools require the caller's dedicated customer API key through supported client credential settings. Discovery consumes no calculation allowance; completed calculations consume the caller's API plan allowance. Connecting without credentials supports public guides only. The hosted server never uses a shared customer key. All five hosted tools are annotated read-only: no notice is sent, lien filed or payment made, but a completed calculation still consumes allowance. The server stores nothing between requests. Results are educational baselines, not legal advice; verify critical deadlines with counsel.",
         "developerName": "LienDeadline",
         "category": "Productivity",
         "capabilities": [
@@ -50,22 +50,28 @@
         "test_cases": {
           "positive": [
             {
-              "description": "Calculate Florida supplier deadlines with known event answers",
+              "description": "Authenticated: Calculate Florida supplier deadlines with known event answers",
               "prompt": "Florida commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete. The owner hasn't made final payment and the contract wasn't terminated. When are our Notice to Owner and lien deadlines?",
               "tools_triggered": "calculate_supplier_deadlines",
-              "expected_behavior": "Status calculated: Notice to Owner 2026-09-17 and claim of lien 2026-12-09, citing Fla. Stat. 713.06(2)(a) and 713.08(5), with a not-legal-advice note."
+              "expected_behavior": "With a valid dedicated customer key and available calculation allowance: Status calculated: Notice to Owner 2026-09-17 and claim of lien 2026-12-09, citing Fla. Stat. 713.06(2)(a) and 713.08(5), with a not-legal-advice note."
             },
             {
-              "description": "Florida project with unknown event answers",
+              "description": "Authenticated: Florida project with unknown event answers",
               "prompt": "Florida commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete. I don't know whether the owner made final payment or whether the contract was terminated. When are my deadlines?",
               "tools_triggered": "calculate_supplier_deadlines",
-              "expected_behavior": "Status review_required with no dates; the reply explains which answers are missing instead of guessing a date."
+              "expected_behavior": "With a valid dedicated customer key and available calculation allowance: Status review_required with no dates; the reply explains which answers are missing instead of guessing a date."
             },
             {
-              "description": "Calculate Kansas supplier deadlines",
+              "description": "Authenticated: Calculate Kansas supplier deadlines",
               "prompt": "Kansas commercial project; a subcontractor ordered the materials; deliveries ran from August 3 to September 10, 2026 and are complete; no lien-period extension was filed. When is my lien deadline?",
               "tools_triggered": "calculate_supplier_deadlines",
-              "expected_behavior": "Status calculated: preliminary notice not required and lien statement due 2026-12-10, citing K.S.A. 60-1103 and 60-1103a."
+              "expected_behavior": "With a valid dedicated customer key and available calculation allowance: Status calculated: preliminary notice not required and lien statement due 2026-12-10, citing K.S.A. 60-1103 and 60-1103a."
+            },
+            {
+              "description": "Authenticated v3 scope discovery before calculation",
+              "prompt": "For a Georgia private commercial project where a contractor hired the material supplier, discover the supported scope and questions before calculating any dates.",
+              "tools_triggered": "get_supplier_questions",
+              "expected_behavior": "With a valid dedicated customer key, report the returned current scope support, questions, sources and exact rule identities. Discovery consumes no calculation allowance. Do not infer support from the guide or v2 baseline, invent identities, or call a calculation until the applicable facts are confirmed."
             },
             {
               "description": "Explain one state's lien rules",
@@ -100,7 +106,7 @@
       },
       "publication": {
         "countries": [],
-        "release_notes": "Adds jurisdiction-specific supplier question discovery and calculations bound to exact rule identities, with explicit review and unavailable-source results. Updates coverage descriptions and retains Florida/Kansas delivery-event baselines and all 51 editorial guides. Five read-only public tools; no account needed. Additional research approvals do not themselves activate calculations."
+        "release_notes": "Corrects source listing access and coverage descriptions: start with current jurisdiction-specific v3 discovery, while the separate v2 baseline remains Florida/Kansas. Supplier discovery and calculations require a dedicated customer key; discovery consumes no calculation allowance and completed calculations consume plan allowance. All 51 editorial guides remain public. Source metadata correction only; submission and publication remain on hold."
       }
     }
   }

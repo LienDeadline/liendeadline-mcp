@@ -71,10 +71,30 @@ test('the ChatGPT plugin package points at the hosted endpoint and stays within 
   assert.ok(ui.defaultPrompt.every(p => p.length <= 128));
   for (const url of [ui.websiteURL, ui.supportURL, ui.privacyPolicyURL, ui.termsOfServiceURL]) assert.match(url, /^https:\/\//);
   const review = plugin.extensions['com.openai'].review.test_cases;
-  assert.equal(review.positive.length, 5);
+  assert.equal(review.positive.length, 6);
+  assert.ok(review.positive.some(c => c.tools_triggered === 'get_supplier_questions'));
   assert.equal(review.negative.length, 3);
   const icon = readFileSync(new URL('../assets/icon.png', import.meta.url));
   for (const file of [ui.logo, ui.composerIcon]) {
     assert.deepEqual(readFileSync(new URL(`../openai-plugin/${file.replace(/^\.\//, '')}`, import.meta.url)), icon, file);
+  }
+});
+
+
+test('current listing metadata distinguishes protected supplier tools from public guides', () => {
+  const plugin = read('openai-plugin/plugin.json');
+  const listing = plugin.extensions['com.openai'];
+  const descriptions = [bundle.long_description, read('well-known/mcp.json').description, listing.interface.longDescription];
+  for (const description of descriptions) {
+    assert.match(description, /v3.*(?:discovery|scope)|discovery.*v3/i);
+    assert.match(description, /customer (?:API )?key/i);
+    assert.match(description, /discovery (?:uses|consumes) no calculation allowance/i);
+    assert.match(description, /completed calculations consume.*allowance/i);
+    assert.doesNotMatch(description, /five public tools|needs no account or API key|other supplier calculations require review/i);
+  }
+  assert.match(listing.interface.longDescription, /guide tools are public and need no account or API key/i);
+  assert.match(listing.publication.release_notes, /submission and publication remain on hold/i);
+  for (const example of listing.review.test_cases.positive.filter(c => c.tools_triggered.startsWith('calculate_'))) {
+    assert.match(example.expected_behavior, /valid dedicated customer key and available calculation allowance/i);
   }
 });
