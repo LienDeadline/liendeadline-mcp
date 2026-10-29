@@ -1,6 +1,6 @@
 # Hosted endpoint
 
-`src/http.ts` serves the public LienDeadline tools over MCP Streamable HTTP, so directories and
+`src/http.ts` serves the LienDeadline guide and supplier tools over MCP Streamable HTTP, so directories and
 clients that only accept an HTTPS URL can use them: the claude.ai Connectors directory, the
 ChatGPT and Codex app directory, Smithery's live tool scan (it lists 0 tools for the stdio
 bundle; see [#7](https://github.com/LienDeadline/liendeadline-mcp/issues/7)) and remote-only MCP
@@ -27,14 +27,15 @@ in Docker and behind other hosts.
 Only the five guide/supplier tools are registered: `calculate_supplier_deadlines`
 (`supplier-events-v2`), `get_supplier_questions`, `calculate_supplier_deadlines_v3`,
 `get_state_lien_guide` and `list_state_lien_guides`. The additive v3 tools depend on a
-promoted canonical source; their presence does not claim additional live date coverage. They are defined by
+promoted canonical source; discovery reports current jurisdiction-specific scope support beyond
+the separate Florida/Kansas v2 baseline. Tool registration alone does not establish coverage. They are defined by
 the same `buildServer()` as the stdio server, so titles, descriptions, schemas and annotations
 match. Hosted mode never registers `calculate_lien_deadline` or `list_supported_states`, never
 uses `LIENDEADLINE_API_KEY` (if it is set, the server logs a warning and ignores it).
 Supplier discovery and calculations require the caller's dedicated `Authorization: Bearer <customer-key>`
 header on every exchange. Only that key is forwarded to the pinned API origin; guides carry no
 credentials. Each POST gets a fresh server and transport; nothing is kept between requests.
-Completed calculations consume the caller's API plan allowance.
+Discovery consumes no calculation allowance. Completed calculations consume the caller's API plan allowance.
 
 Clients must send `Content-Type: application/json` and `Accept: application/json,
 text/event-stream`, as the transport requires. A raw check:
@@ -249,7 +250,7 @@ URL in place. The registry requires a publicly reachable URL, so keep the endpoi
 each release.
 
 Directory submissions are separate: the claude.ai Connectors directory, the ChatGPT/Codex app
-directory, Smithery by URL (close #7 once its scan lists the five public tools) and remote-only lists.
+directory, Smithery by URL (close #7 once its scan lists the five hosted tools) and remote-only lists.
 Use `support@liendeadline.com` as the contact, and keep submission text coverage-neutral.
 
 OpenAI verifies the endpoint's domain before review. Set the token it issues as

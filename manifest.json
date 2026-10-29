@@ -4,7 +4,7 @@
   "display_name": "LienDeadline",
   "version": "0.5.5",
   "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers.",
-  "long_description": "Calculates a material supplier's preliminary notice and lien filing baselines from delivery dates with LienDeadline's public API, and returns editorial state lien guides with statute citations for all 50 states plus DC. Available date baselines cover Florida and Kansas private projects; other cases return review_required with the reason. Supplier calculations require a customer key and plan allowance. Guides remain public. Not legal advice.",
+  "long_description": "Calculates material supplier notice and lien outcomes from delivery facts using LienDeadline's API. Start with v3 discovery for current jurisdiction-specific scope support and exact rule identities; the separate v2 baseline covers Florida and Kansas private projects. Supplier discovery and calculations require a dedicated customer key. Discovery uses no calculation allowance; completed calculations consume plan allowance. Editorial lien guides for all 50 states and DC are public without a key. Unresolved facts and unsupported scopes need qualified review. Not legal advice.",
   "author": {
     "name": "LienDeadline",
     "email": "support@liendeadline.com",
@@ -38,7 +38,7 @@
     },
     {
       "name": "get_supplier_questions",
-      "description": "Current supplier scope support, questions and source identities. Customer key required."
+      "description": "Current supplier scope support, questions and source identities. Customer key required; no calculation allowance consumed."
     },
     {
       "name": "calculate_supplier_deadlines_v3",

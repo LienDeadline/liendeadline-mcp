@@ -36,7 +36,7 @@
       "environmentVariables": [
         {
           "name": "LIENDEADLINE_API_KEY",
-          "description": "Dedicated customer key required for supplier and invoice calculations. State guides need no key.",
+          "description": "Dedicated customer key required for supplier discovery and supplier/invoice calculations. Discovery uses no calculation allowance; completed calculations consume allowance. State guides need no key.",
           "isRequired": false,
           "isSecret": true
         }
