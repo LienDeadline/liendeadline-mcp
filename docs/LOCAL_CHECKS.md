@@ -1,7 +1,8 @@
 # Local checks
 
-GitHub Actions are removed. Run source validation locally, using the shared
-[Ops runner](../../liendeadline-ops/docs/local-ci.md) for isolated execution and receipts.
+Ordinary GitHub Actions checks remain retired. The release-only npm trusted-publishing
+exception is described in [RELEASING.md](../RELEASING.md). Run source validation locally, using
+the shared [Ops runner](../../liendeadline-ops/docs/local-ci.md) for isolated execution and receipts.
 For a standalone checkout:
 
 ```bash

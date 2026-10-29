@@ -1,0 +1,133 @@
+name: Publish npm release
+
+# Release-only exception: ordinary source checks stay in the Ops local runner.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing stable release tag on main (for example v0.5.6)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-ref:
+    if: github.repository == 'LienDeadline/liendeadline-mcp'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Resolve approved immutable tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node scripts/check-npm-release-ref.mjs >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: release-ref
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ needs.release-ref.outputs.tag }}
+      RELEASE_VERSION: ${{ needs.release-ref.outputs.version }}
+      RELEASE_SHA: ${{ needs.release-ref.outputs.sha }}
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+    steps:
+      # Keep workflow helpers from this run separate from the tagged package source.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          path: release-tools
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.release-ref.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Recheck tag and publishing runtime
+        working-directory: release-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-npm-release-ref.mjs > "$RUNNER_TEMP/release-ref"
+          grep -Fx "sha=$RELEASE_SHA" "$RUNNER_TEMP/release-ref"
+          test "$(git -C ../source rev-parse HEAD)" = "$RELEASE_SHA"
+          node -e 'if (process.version !== "v24.20.0") throw new Error("Unexpected Node runtime")'
+          npm --version | node -e 'let s=""; for await (const c of process.stdin) s+=c; const [a,b,c]=s.trim().split(".").map(Number); if (!(a>11 || a===11 && (b>5 || b===5 && c>=1))) throw new Error("npm >=11.5.1 is required")'
+          test -z "${NODE_AUTH_TOKEN:-}${NPM_TOKEN:-}"
+          : > "$RUNNER_TEMP/npm-release.npmrc"
+          echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/npm-release.npmrc" >> "$GITHUB_ENV"
+      - name: Reject existing npm version and ambiguous registry errors
+        working-directory: source
+        run: |
+          node --input-type=module <<'JS'
+          const url = `https://registry.npmjs.org/liendeadline-mcp/${process.env.RELEASE_VERSION}`;
+          const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+          if (response.status !== 404) {
+            throw new Error(response.ok
+              ? 'Version already exists. Stop and verify its tarball integrity and source provenance manually; do not republish or infer success.'
+              : `Registry lookup failed: HTTP ${response.status}`);
+          }
+          JS
+      - name: Build and validate release package
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node scripts/check-release-metadata.mjs "$RELEASE_TAG"
+          npm run prepack
+          npm pack --ignore-scripts --json > "$RUNNER_TEMP/npm-pack.json"
+          node ../release-tools/scripts/check-npm-release-package.mjs "$RUNNER_TEMP/npm-pack.json" "$RELEASE_TAG"
+          git diff --exit-code
+      - name: Publish exact tarball with npm trusted publishing
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm publish "liendeadline-mcp-$RELEASE_VERSION.tgz" --ignore-scripts --access public --provenance
+      - name: Verify published package metadata and integrity
+        working-directory: source
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          const [pack] = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/npm-pack.json`, 'utf8'));
+          for (let attempt = 0; attempt < 30; attempt++) {
+            const response = await fetch(`https://registry.npmjs.org/liendeadline-mcp/${process.env.RELEASE_VERSION}`, { signal: AbortSignal.timeout(10000) });
+            if (response.ok) {
+              const pkg = await response.json();
+              if (pkg.name !== pack.name || pkg.version !== pack.version || pkg.mcpName !== 'io.github.LienDeadline/liendeadline-mcp' || pkg.dist?.integrity !== pack.integrity || !pkg.dist?.attestations?.provenance) throw new Error('Published package metadata, integrity or provenance mismatch');
+              console.log(`Verified npm ${pkg.name}@${pkg.version}: ${pkg.dist.integrity}`);
+              break;
+            }
+            if (response.status !== 404 || attempt === 29) throw new Error(`Publication verification failed: HTTP ${response.status}`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
+          }
+          JS

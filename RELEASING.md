@@ -1,9 +1,10 @@
 # Releasing
 
-Releases are manual operations from an approved `v<version>` tag on `main`.
-GitHub Actions are removed: pushing a tag does not publish npm, the MCP Registry
-or GitHub Release assets. A release does not deploy the hosted endpoint; that
-separate operation is documented in [docs/HOSTED.md](docs/HOSTED.md).
+Releases start from an approved stable `v<major>.<minor>.<patch>` tag whose commit
+is reachable from `main`. The release-only [npm workflow](.github/workflows/release.yml)
+publishes npm automatically on a newly created tag. Ordinary source checks remain
+local. MCP Registry publication and GitHub Release assets remain separate operations.
+A release does not deploy the hosted endpoint; that separate operation is documented in [docs/HOSTED.md](docs/HOSTED.md).
 
 ## Offline preflight
 
@@ -24,21 +25,60 @@ to the reviewed commit before any publication; do not publish from a dirty check
 
 These commands contact external services and are excluded from local source checks.
 Run them only when the release itself is authorized and the publisher has the required
-account access. The former GitHub OIDC/trusted-publisher flow is unavailable locally;
-use an approved npm and MCP Registry publishing identity. Do not weaken package
+account access. npm publication uses the existing GitHub OIDC trusted publisher
+described below; MCP Registry publication uses an approved local identity. Do not weaken package
 security or create credentials merely to bypass that prerequisite.
 
-1. Check whether npm already has the exact version. Publish only if it is absent:
+1. Use the release-only npm workflow after the offline source gate passes on the
+   exact release commit. New approved stable tags trigger it automatically. The workflow
+   requires the tag/package version to match and the tag commit to be reachable from
+   `main`; branch refs, prereleases, moved tags and dispatches from other branches fail.
+   It checks package manifests, installs the shrinkwrap with `npm ci --ignore-scripts`,
+   runs `prepack` (the TypeScript build), validates the packed tarball, and publishes
+   that exact tarball with `--access public --provenance` through OIDC. It does not run
+   the full test suite or call OpenAI. Only the publishing job has `id-token: write`;
+   its GitHub environment is `release`. Both official actions are pinned to verified
+   commit SHAs, Node is locked to 24.20.0, npm must be at least 11.5.1, and dependency
+   caching is disabled.
+
+   Reuse the existing npm trusted publisher for `liendeadline-mcp`:
+
+   | Field | Exact value |
+   | --- | --- |
+   | Provider | GitHub Actions |
+   | Organization or user | `LienDeadline` |
+   | Repository | `liendeadline-mcp` |
+   | Workflow filename | `release.yml` |
+   | Environment name | `release` |
+   | Required allowed action | `npm publish` (existing `npm stage publish` grant can remain) |
+
+   Do not add an npm token or recreate the existing publisher. See the official
+   [npm trusted publishing requirements](https://docs.npmjs.com/trusted-publishers/).
+   GitHub Actions must be enabled for this repository and the existing `release`
+   environment must permit this workflow. Ordinary PR/push checks stay local.
+
+   **Initial existing-tag bootstrap (v0.5.6):** its immutable tag predates this workflow.
+   After merging the workflow to `main`, run the workflow **on `main`** with the existing
+   tag as input; do not move or recreate the tag:
 
    ```bash
-   npm view liendeadline-mcp@<x.y.z> version
-   npm publish --access public
-   npm view liendeadline-mcp@<x.y.z> mcpName
+   gh workflow run release.yml --ref main -f tag=v0.5.6
+   gh run list --workflow release.yml --limit 5
    ```
 
-   The package must resolve with `io.github.LienDeadline/liendeadline-mcp` as its
-   `mcpName` before registry publication. Registry propagation can lag; preserve the
-   former bounded wait of 30 attempts at 10-second intervals when retrying this lookup.
+   The workflow helpers come from the invocation commit; package files come from the
+   separately checked out, verified tag commit. For a dispatch, npm provenance records
+   the workflow invocation on `main`, so retain the run's resolved `sha` output as
+   the tagged package source evidence. Normal new-tag runs use the tagged invocation.
+
+   Concurrency is serialized per tag. If npm already contains the version, the workflow
+   **fails closed** and publishes nothing; it does not claim that an existing artifact
+   came from this source. Independently compare its tarball integrity and provenance
+   before recording it as published. HTTP errors other than an exact version 404 also
+   stop publication. After a successful publish, the workflow verifies version,
+   `mcpName`, exact tarball integrity and provenance presence with a bounded wait.
+   Registry publication requires npm to resolve the package with
+   `io.github.LienDeadline/liendeadline-mcp` as its `mcpName`.
 
 2. Check the exact MCP Registry version:
 
