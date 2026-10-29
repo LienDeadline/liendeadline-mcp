@@ -5,8 +5,10 @@ checks the server runs. For setup, see the [README](../README.md).
 
 The server has seven tools. Supplier discovery and calculations require a customer key.
 Discovery consumes no calculation allowance; completed calculations consume allowance; guides are public. None sends a
-notice, files a lien or makes a payment. Every tool is annotated `readOnlyHint: true`,
-`destructiveHint: false`, `idempotentHint: true` and `openWorldHint: true`.
+notice, files a lien or makes a payment. The three calculation tools are annotated
+`readOnlyHint: false` and `idempotentHint: false` because they can consume allowance.
+Discovery, guide reads and `list_supported_states` are annotated `readOnlyHint: true`
+and `idempotentHint: true`. Every tool has `destructiveHint: false` and `openWorldHint: true`.
 
 | Server | Tools | Key |
 | --- | --- | --- |

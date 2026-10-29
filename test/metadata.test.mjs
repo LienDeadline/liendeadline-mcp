@@ -93,6 +93,8 @@ test('current listing metadata distinguishes protected supplier tools from publi
     assert.doesNotMatch(description, /five public tools|needs no account or API key|other supplier calculations require review/i);
   }
   assert.match(listing.interface.longDescription, /guide tools are public and need no account or API key/i);
+  assert.match(listing.interface.longDescription, /calculation tools are annotated readOnlyHint: false and idempotentHint: false/i);
+  assert.doesNotMatch(listing.interface.longDescription, /all five hosted tools are annotated read.only/i);
   assert.match(listing.publication.release_notes, /submission and publication remain on hold/i);
   for (const example of listing.review.test_cases.positive.filter(c => c.tools_triggered.startsWith('calculate_'))) {
     assert.match(example.expected_behavior, /valid dedicated customer key and available calculation allowance/i);
