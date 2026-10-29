@@ -4,18 +4,12 @@ name: Publish npm release
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing stable release tag on main (for example v0.5.6)'
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: npm-release-${{ inputs.tag || github.ref_name }}
+  group: npm-release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -39,7 +33,7 @@ jobs:
       - name: Resolve approved immutable tag
         id: release
         env:
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: node scripts/check-npm-release-ref.mjs >> "$GITHUB_OUTPUT"
 
   publish:

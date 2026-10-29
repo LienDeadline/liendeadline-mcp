@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-export function resolveRelease({ tag, eventName, ref, repository, event, cwd = process.cwd() }) {
+export function resolveRelease({ tag, eventName, ref, repository, event, workflowSha, cwd = process.cwd() }) {
   if (repository !== 'LienDeadline/liendeadline-mcp') throw new Error('Unexpected repository');
   if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag ?? '')) {
     throw new Error('Release tag must be stable v<major>.<minor>.<patch>');
@@ -12,16 +12,13 @@ export function resolveRelease({ tag, eventName, ref, repository, event, cwd = p
     if (ref !== `refs/tags/${tag}` || event.created !== true || event.deleted || event.forced) {
       throw new Error('Only a newly created release tag may publish automatically');
     }
-  } else if (eventName === 'workflow_dispatch') {
-    if (ref !== 'refs/heads/main' || event.inputs?.tag !== tag) {
-      throw new Error('Existing-tag dispatch must run the workflow on main');
-    }
   } else {
     throw new Error('Unsupported release event');
   }
   const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const sha = git('rev-parse', '--verify', `refs/tags/${tag}^{commit}`);
   git('merge-base', '--is-ancestor', sha, 'refs/remotes/origin/main');
+  if (workflowSha !== sha) throw new Error('Workflow provenance commit must equal the release tag commit');
   if (eventName === 'push' && ![sha, git('rev-parse', `refs/tags/${tag}`)].includes(event.after)) {
     throw new Error('Pushed tag no longer matches the event');
   }
@@ -36,6 +33,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const result = resolveRelease({
     tag: process.env.RELEASE_TAG,
     eventName: process.env.GITHUB_EVENT_NAME,
+    workflowSha: process.env.GITHUB_SHA,
     ref: process.env.GITHUB_REF,
     repository: process.env.GITHUB_REPOSITORY,
     event: JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')),

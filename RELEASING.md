@@ -32,7 +32,9 @@ security or create credentials merely to bypass that prerequisite.
 1. Use the release-only npm workflow after the offline source gate passes on the
    exact release commit. New approved stable tags trigger it automatically. The workflow
    requires the tag/package version to match and the tag commit to be reachable from
-   `main`; branch refs, prereleases, moved tags and dispatches from other branches fail.
+   `main`; branch refs, prereleases and moved tags fail. The actual workflow commit
+   (`GITHUB_SHA`) must equal the resolved tag commit, so npm provenance identifies
+   the package source commit exactly.
    It checks package manifests, installs the shrinkwrap with `npm ci --ignore-scripts`,
    runs `prepack` (the TypeScript build), validates the packed tarball, and publishes
    that exact tarball with `--access public --provenance` through OIDC. It does not run
@@ -58,18 +60,15 @@ security or create credentials merely to bypass that prerequisite.
    environment must permit this workflow. Ordinary PR/push checks stay local.
 
    **Initial existing-tag bootstrap (v0.5.6):** its immutable tag predates this workflow.
-   After merging the workflow to `main`, run the workflow **on `main`** with the existing
-   tag as input; do not move or recreate the tag:
-
-   ```bash
-   gh workflow run release.yml --ref main -f tag=v0.5.6
-   gh run list --workflow release.yml --limit 5
-   ```
-
-   The workflow helpers come from the invocation commit; package files come from the
-   separately checked out, verified tag commit. For a dispatch, npm provenance records
-   the workflow invocation on `main`, so retain the run's resolved `sha` output as
-   the tagged package source evidence. Normal new-tag runs use the tagged invocation.
+   Do not move or recreate it. Historical-tag dispatch is deliberately unavailable:
+   dispatching the newer workflow from `main` would attest the workflow commit rather
+   than the tagged package source. This one-time release requires separately authorized
+   local publication of the verified tagged tarball with the existing approved npm
+   identity. Use `npm publish <verified-tarball> --ignore-scripts --access public` only
+   within that authority; do not add a long-lived token or claim GitHub OIDC provenance
+   for the local publication. Verify the published version, `mcpName` and exact tarball
+   integrity before continuing to the MCP Registry. Future newly created tags that
+   include this workflow use automatic OIDC publishing.
 
    Concurrency is serialized per tag. If npm already contains the version, the workflow
    **fails closed** and publishes nothing; it does not claim that an existing artifact
