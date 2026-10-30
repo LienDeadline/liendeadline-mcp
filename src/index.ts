@@ -6,7 +6,6 @@ import { buildServer } from "./server.js";
 export { buildServer } from "./server.js";
 
 async function main() {
-  // The local stdio server serves all seven tools; the customer key stays in this process.
   const server = buildServer({
     includeCustomerTools: true,
     baseUrl: process.env.LIENDEADLINE_API_URL?.replace(/\/+$/, "") || DEFAULT_BASE_URL,

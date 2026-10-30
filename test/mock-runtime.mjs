@@ -1,14 +1,11 @@
 import { discovery, result, conservativeResult } from "./supplier-v3-fixture.mjs";
-// Child-process preload for isolated stdio and HTTP tests. Every upstream HTTP request is mocked.
 import { registerHooks } from 'node:module';
 registerHooks({
   resolve(specifier, context, nextResolve) {
-    // Run the TypeScript sources directly: their relative ./x.js imports resolve to ./x.ts.
     const fromSource = /\/src\/[\w-]+\.ts$/.test(context.parentURL ?? '');
     return nextResolve(fromSource && /^\.\/[\w-]+\.js$/.test(specifier) ? specifier.replace(/\.js$/, '.ts') : specifier, context);
   },
 });
-// Shaped like v2: explicit no answers permit baselines; missing answers never yield dates.
 const reviewed = name => ({ name, deadline: null, days_from_now: null, required: null, status: 'review_required', description: 'Synthetic review' });
 const dated = (name, deadline) => ({ name, deadline, days_from_now: 30, required: true, status: 'calculated', description: 'Synthetic baseline' });
 const supplierEcho = inputs => {
@@ -31,7 +28,6 @@ globalThis.fetch = async (url, init) => {
   if (init.redirect !== 'error' || (protectedRoute
       ? authorization !== `Bearer ${process.env.MCP_TEST_EXPECTED_KEY ?? process.env.LIENDEADLINE_API_KEY}`
       : authorization !== null) ||
-      // Hosted tests forbid Authorization on every route, protected or not.
       (process.env.MCP_TEST_FORBID_AUTHORIZATION === '1' && authorization !== null)) {
     throw new Error('Credential isolation contract failed');
   }

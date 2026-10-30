@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-// Mirrors the API's additive supplier-events-v3 contract. No legal rules live here.
 export const SUPPLIER_V3 = "supplier-events-v3" as const;
 export type Answer = "yes" | "no" | "unknown";
 export type SupplierScopeV3 = {
@@ -231,8 +230,6 @@ function recurringPeriods(parent: Record<string, unknown>, request: SupplierRequ
         request.events.tn_one_to_four_units?.answer !== "yes" || (parent.status !== "not_required" && parent.status !== "review_required")))) return false;
     ids.add(p.id as string); return true;
   })) return false;
-  // A present ledger replaces the old scalar rather than silently discarding
-  // paid, unknown or source-held entered periods.
   if (duties.some(d => !ids.has(d.id))) return false;
   if (value.some(p => p.status === "calculated")) return parent.status === "calculated";
   if (value.some(p => p.status === "review_required")) return parent.status === "review_required" || parent.status === "no_lien_right";
@@ -340,8 +337,6 @@ export function isSupplierResultV3(v: unknown, request: SupplierRequestV3): v is
     if (d.candidate_deadlines !== undefined && (!Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length > 16 || (d.candidate_deadlines.length > 0 && !["calculated", "review_required"].includes(String(d.status))) ||
       new Set(d.candidate_deadlines.map(c => record(c) ? c.id : undefined)).size !== d.candidate_deadlines.length ||
       !d.candidate_deadlines.every(c => record(c) && eventId(c.id) && isCivilDateV3(c.date) && texts(c.source_ids) && c.source_ids.length > 0 && c.source_ids.every(id => sources.has(id))))) return false;
-    // Accept only the API's explicit conservative target. Never infer one from
-    // candidates or promote it to a statutory date/countdown.
     if (Object.hasOwn(d, "action_by") && (!isCivilDateV3(d.action_by) || d.status !== "review_required" ||
       d.reason_code !== "conservative_action_date" || d.source_ids.length === 0 || !hasCriticalWarnings ||
       !Array.isArray(d.candidate_deadlines) || d.candidate_deadlines.length === 0 ||

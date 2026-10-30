@@ -31,6 +31,15 @@ Tests use synthetic credentials and mocked HTTP. They don't call the LienDeadlin
 secrets. GitHub Actions and their schedules are removed; source checks run locally.
 [Local check coverage](docs/LOCAL_CHECKS.md) maps every former job to its replacement.
 
+The test preloads resolve source-relative JavaScript imports to TypeScript and replace every
+upstream request. Fixture dates and statuses are supplied contract examples, not MCP statute
+calculations, legal approvals, service receipts or proof of hosted coverage. The planned-notice,
+recurring-notice and New Hampshire completion suites also retain full-engine exports from the
+final `.7`, `.8` and `.9` bindings respectively, evaluated under synthetic offline approval.
+The Task 1 export has the same [offline evidence limits](docs/qa/supplier-task1-2026-10-20/README.md).
+Synthetic keys are never issued credentials. Public tool descriptions describe their own tool;
+cross-tool instructions belong in server instructions, and directory annotations repeat titles.
+
 To run the local stdio server from a build, point an MCP client at `node dist/index.js`.
 
 ### Live smoke test

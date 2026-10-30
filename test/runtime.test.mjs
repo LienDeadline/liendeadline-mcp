@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`; // Synthetic only.
+const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`;
 async function withClient(env, run) {
   const transport = new StdioClientTransport({
     command: process.execPath,
@@ -45,8 +45,6 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
       assert.equal(tool.annotations?.readOnlyHint, !tool.name.startsWith('calculate_'));
       assert.equal(tool.annotations?.destructiveHint, false);
       assert.equal(tool.annotations?.title, tool.title);
-      // Directory policy: a description says what its tool does, with no instructions about model
-      // behavior or other tools. Cross-tool guidance belongs in the server instructions.
       for (const other of tools) {
         if (other.name !== tool.name) assert.equal(tool.description.includes(other.name), false, `${tool.name} mentions ${other.name}`);
       }
@@ -58,7 +56,6 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
     assert.ok(supplierSchema.florida_termination_status);
     assert.ok(supplierSchema.kansas_extension_status);
     assert.equal(Object.hasOwn(supplierSchema, 'special_events_reviewed'), false);
-    // Directory manifests declare the tool list statically; keep them identical to the server.
     for (const manifest of ['manifest.json', 'well-known/mcp.json']) {
       const declared = JSON.parse(readFileSync(new URL(`../${manifest}`, import.meta.url), 'utf8')).tools.map(t => t.name);
       assert.deepEqual([...declared].sort(), tools.map(t => t.name).sort(), manifest);

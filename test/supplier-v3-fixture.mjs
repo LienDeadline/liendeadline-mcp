@@ -8,7 +8,6 @@ export const input = { ...scope, rules_source: rules, questions_identity: questi
 export const deadline = { name: 'Synthetic lien', status: 'calculated', deadline: '2026-07-01', days_from_now: 30, required: true, description: 'Synthetic result', reason_code: 'test', event_ids: ['project_completed'], source_ids: ['test'] };
 export const result = { contract_version: 'supplier-events-v3', state_code: 'TX', role: 'supplier', status: 'calculated', as_of_date: '2026-06-01', inputs: input, rules_source: rules, questions_identity: questionsIdentity, sources: [source], critical_warnings: [], disclaimer: 'Synthetic, not legal advice.', preliminary_notice: deadline, lien_filing: deadline };
 
-// Synthetic unresolved legal interpretation: an explicit planning target, not a filing date.
 export const conservativeResult = {
   ...result, status: 'review_required',
   critical_warnings: ['The statutory deadline remains unresolved. Obtain qualified review before the conservative action date.'],

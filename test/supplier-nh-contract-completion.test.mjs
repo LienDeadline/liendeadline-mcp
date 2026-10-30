@@ -15,8 +15,6 @@ const clone = value => structuredClone(value);
 const valid = value => isSupplierResultV3(value, value.inputs);
 const scopeOf = request => Object.fromEntries(['contract_version', 'state', 'role', 'project_type', 'hired_by'].map(k => [k, request[k]]));
 
-// Synthetic wire-only fixtures. Dates/statuses are supplied responses, not MCP
-// statute calculations, API engine proof, legal approval or service evidence.
 function syntheticCompleted() {
   const value = clone(result);
   value.preliminary_notice = clone(value.preliminary_notice);
@@ -156,8 +154,6 @@ test('synthetic actual-future completion422/stale409/source503 produce errors wi
   }
 });
 
-// Actual final .9 evaluator/isolated-route export with synthetic offline approval.
-// This is not hosted API output, owner legal approval or provider acceptance.
 const freshBytes = readFileSync(new URL('./fixtures/supplier_nh_contract_targets_v1.json', import.meta.url));
 const fresh = JSON.parse(freshBytes);
 const row = id => { const value = fresh.cases.find(c => c.id === id); assert.ok(value, id); return value; };

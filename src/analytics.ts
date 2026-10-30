@@ -74,7 +74,6 @@ export function createHostedAnalytics(
     fetchRetryCount: 0,
     disableGeoip: true,
   });
-  // Collector failures are isolated from tools and never print payloads or exception bodies.
   client.on("error", () => {});
   return {
     instrument(server: unknown) {
@@ -94,7 +93,6 @@ export function createHostedAnalytics(
       try {
         await client.shutdown(3_000);
       } catch {
-        // Analytics is best effort; a collector outage must not prevent shutdown.
       }
     },
   };

@@ -1,9 +1,3 @@
-# Builds the hosted Streamable HTTP image (Dockerfile target "http") and pushes it to
-# Artifact Registry. Run it from a clean checkout of the reviewed commit; see docs/HOSTED.md.
-#
-#   gcloud builds submit --project="$PROJECT" --region=us-central1 \
-#     --config=cloudbuild.hosted.yaml \
-#     --substitutions=_IMAGE=us-central1-docker.pkg.dev/$PROJECT/liendeadline-mcp/server:$(git rev-parse --short HEAD) .
 steps:
   - name: node:22-alpine
     id: checks
