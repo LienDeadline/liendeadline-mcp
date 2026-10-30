@@ -33,7 +33,6 @@ test('the .mcpb bundle runs the built entry point and keeps the key optional and
 });
 
 test('registry manifest names the npm package that proves ownership', () => {
-  // The MCP registry only accepts an npm package whose package.json mcpName equals the server name.
   assert.equal(pkg.mcpName, server.name);
   const [npm] = server.packages;
   assert.equal(npm.registryType, 'npm');
@@ -50,7 +49,6 @@ test('the customer key is optional and marked secret wherever it is declared', (
 });
 
 test('the published package locks its dependency tree with npm-shrinkwrap.json', () => {
-  // npx honors a published shrinkwrap; pinning only the top-level version would not lock transitive deps.
   const shrinkwrap = read('npm-shrinkwrap.json');
   assert.ok(pkg.files.includes('npm-shrinkwrap.json'));
   assert.equal(shrinkwrap.version, pkg.version);

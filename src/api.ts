@@ -7,7 +7,6 @@
  * https://liendeadline.com/api/test-api/openapi.json
  */
 
-/** Keep in step with package.json and server.json; test/metadata.test.mjs enforces it. */
 import { isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3, isSupplierScopeV3, type SupplierDiscovery, type SupplierRequestV3, type SupplierResultV3, type SupplierScopeV3 } from "./supplier-v3.ts";
 
 export const VERSION = "0.5.7";
@@ -74,12 +73,10 @@ async function request<T>(
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(init?.headers ?? {}),
       },
-      // Never forward a customer key through a same- or cross-origin redirect.
       redirect: "error",
       signal: AbortSignal.timeout(20_000),
     });
   } catch {
-    // Fetch errors can contain request/credential details. Do not expose the cause.
     throw new LienDeadlineApiError("Could not reach the LienDeadline API. Check connectivity and the configured API origin; redirects are not followed.");
   }
 
@@ -102,7 +99,6 @@ async function request<T>(
                 : res.status === 404
                   ? " No guide exists for that state code."
                   : "";
-    // Do not read or echo denial bodies, which may include sensitive content.
     throw new LienDeadlineApiError(`LienDeadline API returned ${res.status}.${hint}`, res.status);
   }
   try {
@@ -240,7 +236,6 @@ export function supplierRequestBody(input: SupplierInput): Record<string, string
   }
   if (problems.length > 0) throw new LienDeadlineApiError(`Invalid supplier request: ${problems.join("; ")}.`);
 
-  // Send only supplied fields: the API rejects explicit nulls and echoes exactly what it received.
   const body: Record<string, string | boolean> = { contract_version: SUPPLIER_EVENTS_CONTRACT_VERSION };
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) body[key] = value;

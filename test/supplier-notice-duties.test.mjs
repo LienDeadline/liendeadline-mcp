@@ -4,7 +4,6 @@ import { isSupplierResultV3 } from '../src/supplier-v3.ts';
 import { calculateSupplierDeadlinesV3 } from '../src/api.ts';
 import { input, result } from './supplier-v3-fixture.mjs';
 
-// Provisional contract fixtures, not state-law calculations or approval receipts.
 const stableIds = ['nv_right_to_lien', 'nv_residential_intent', 'il_occupant_notice',
   'il_owner_lender_notice', 'ma_identification', 'ma_notice_of_contract'];
 function namedResult(ids = stableIds.slice(0, 2)) {

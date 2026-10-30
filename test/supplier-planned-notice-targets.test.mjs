@@ -10,7 +10,6 @@ import { result } from './supplier-v3-fixture.mjs';
 import './mock-runtime.mjs';
 const { buildServer } = await import('../src/server.ts');
 
-// Synthetic wire fixtures only: no state-law calculation, approval or service receipt.
 const KEY = 'ld_live_' + 'a'.repeat(32) + '.' + 'b'.repeat(43);
 const BASE = 'https://secure-api-v1.liendeadline.com';
 function plannedResult() {
@@ -41,7 +40,7 @@ test('qualified forecast retains confirmed summary and does not infer plans from
   value.preliminary_notice.planned_notice_targets[0].basis = {
     kind: 'policy_earlier_filing_target', assumed_filing_date: '2026-06-11', minimum_interval_days: 10,
   };
-  assert.equal(valid(value), true); // A plan earlier than the first notice does not change its summary.
+  assert.equal(valid(value), true);
   assert.equal(value.preliminary_notice.deadline, '2026-07-01');
   const historical = structuredClone(result);
   historical.preliminary_notice.candidate_deadlines = [{ id: 'intent', date: '2026-07-10', source_ids: ['test'] }];
@@ -73,7 +72,7 @@ test('held lien permits independent plans, while held or ineligible preliminary 
     assert.equal(valid(held), false, status);
   }
   delete value.preliminary_notice.notice_duties;
-  assert.equal(valid(value), false); // This increment has no plan-only parent.
+  assert.equal(valid(value), false);
 });
 
 test('planning targets and bases require exact eight/three fields and bounded civil evidence', () => {
@@ -93,8 +92,8 @@ test('planning targets and bases require exact eight/three fields and bounded ci
     p => { p.basis = null; }, p => { p.basis.minimum_interval_days = true; },
     p => { p.basis.minimum_interval_days = '30'; }, p => { p.basis.minimum_interval_days = 30.5; },
     p => { p.basis.minimum_interval_days = 0; }, p => { p.basis.minimum_interval_days = 20; },
-    p => { p.target_date = '2027-01-14'; }, // 29 days cannot satisfy the 30-day basis.
-    p => { p.basis.minimum_interval_days = 10; p.target_date = '2027-02-03'; }, // Nine days is insufficient.
+    p => { p.target_date = '2027-01-14'; },
+    p => { p.basis.minimum_interval_days = 10; p.target_date = '2027-02-03'; },
     p => { p.basis.assumed_filing_date = '2027-01-12'; },
     p => { p.event_ids = []; }, p => { p.event_ids = ['final_furnishing', 'final_furnishing']; },
     p => { p.event_ids = ['Bad-ID']; }, p => { p.event_ids = ['missing']; },
@@ -107,7 +106,7 @@ test('planning targets and bases require exact eight/three fields and bounded ci
   const unicode = plannedResult(); unicode.preliminary_notice.planned_notice_targets[0].description = '😀'.repeat(2000);
   assert.equal(valid(unicode), true);
   unicode.preliminary_notice.planned_notice_targets[0].description = ' ';
-  assert.equal(valid(unicode), true); // Match the API Text model; do not introduce trim-only restrictions.
+  assert.equal(valid(unicode), true);
 });
 
 test('known own facts, parent evidence and cross-kind identities fail closed', () => {
@@ -208,8 +207,6 @@ test('MCP protocol reports planning assumptions with additive recurring input an
   } finally { await client.close(); await server.close(); }
 });
 
-// Real API full-engine outputs exported after root's final .7 binding, with synthetic
-// offline approval only. These are neither hosted API results nor legal approval.
 const freshBytes = readFileSync(new URL('./fixtures/supplier_planned_notice_targets_v1.json', import.meta.url));
 const fresh = JSON.parse(freshBytes);
 test('final bound API planning fixture remains an exact exported byte copy', () => {

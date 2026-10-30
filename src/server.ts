@@ -102,8 +102,6 @@ const CUSTOMER_INSTRUCTIONS =
   "LIENDEADLINE_API_KEY. list_supported_states returns the codes calculate_lien_deadline accepts; " +
   "supplier tools also require a key. Without one, use the public state guides or website calculator. ";
 
-// Every tool only calculates or reads; none sends notices, files liens or makes payments.
-// Each tool also repeats its title in its annotations, where directory reviewers look for it.
 const READ_ONLY = {
   readOnlyHint: true,
   destructiveHint: false,

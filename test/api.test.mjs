@@ -4,7 +4,6 @@ import {
   DEFAULT_BASE_URL, calculateDeadline, calculateSupplierDeadlines as requestSupplierDeadlines, listSupportedStates, getStateGuide, listStateGuides,
 } from '../src/api.ts';
 
-// Synthetic key only; no issued credential or provider request.
 const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`;
 const calculateSupplierDeadlines = (base, input) => requestSupplierDeadlines(base, input, KEY);
 const input = { state: 'TX', invoice_date: '2026-07-01', project_type: 'Commercial' };
@@ -140,7 +139,6 @@ test('calculation fills omitted fields as the tool description states', async ()
   assert.equal(result.notes, '');
 });
 
-// Public supplier delivery-event contract. Shapes follow the live supplier-events-v2 result.
 const supplierInput = {
   state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
   project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,

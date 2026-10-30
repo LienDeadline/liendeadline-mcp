@@ -9,8 +9,6 @@ const key = 'ld_live_' + 'a'.repeat(32) + '.' + 'b'.repeat(43);
 const base = 'https://secure-api-v1.liendeadline.com';
 const riKey = 'ri_mailed_within_200_days';
 
-// Actual full-evaluator outputs under isolated synthetic approval. The transport
-// is mocked; these tests do not establish live API scope or legal approval.
 test('Task 1 fixture covers the five required corrections', () => {
   assert.equal(fixture.synthetic_approval_only, true);
   for (const state of ['NH', 'PA', 'NV', 'WI', 'RI']) assert.ok(fixture.cases.some(item => item.request.state === state), state);

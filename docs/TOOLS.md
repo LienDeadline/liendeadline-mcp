@@ -380,6 +380,12 @@ The result has these fields:
 | `critical_warnings` | Warnings to show the user. |
 | `disclaimer` | Not legal advice. |
 
+The MCP v3 adapter validates and transports the API contract; it contains no state-law rules.
+A returned recurring-period ledger replaces the legacy scalar without discarding entered paid,
+unknown or source-held periods. Conservative action dates are accepted only when the API explicitly
+returns them with the required review status, sources, candidates and warnings; the adapter never
+infers a statutory date or countdown from candidates.
+
 Each outcome has these fields:
 
 | Field | Meaning |

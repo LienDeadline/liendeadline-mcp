@@ -1,6 +1,5 @@
 name: Publish npm release
 
-# Release-only exception: ordinary source checks stay in the Ops local runner.
 on:
   push:
     tags: ['v*']
@@ -22,11 +21,11 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       sha: ${{ steps.release.outputs.sha }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24.20.0'
           package-manager-cache: false
@@ -50,18 +49,17 @@ jobs:
       RELEASE_SHA: ${{ needs.release-ref.outputs.sha }}
       NPM_CONFIG_REGISTRY: https://registry.npmjs.org
     steps:
-      # Keep workflow helpers from this run separate from the tagged package source.
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           path: release-tools
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.release-ref.outputs.sha }}
           path: source
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24.20.0'
           package-manager-cache: false

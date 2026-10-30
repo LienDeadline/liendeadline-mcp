@@ -74,6 +74,13 @@ curl -s https://mcp.liendeadline.com/mcp \
 Every tool call makes at most one upstream request, and `initialize` and `tools/list` make none.
 API access and plan budgets remain authoritative for every supplier call. Public guide calls remain free.
 
+Timeout handling closes the transport before replying, aborting the tool handler so a late result
+cannot write to a completed response. Oversized streaming bodies are drained after rejection;
+address churn evicts the oldest rate-limit window to bound memory. Shutdown finishes in-flight
+requests on SIGTERM. Collector failures never log payloads or exception bodies and cannot prevent
+tool execution or shutdown. The image includes `assets/icon.png` for the host's favicon; without
+that asset the favicon routes return 404.
+
 ## Deploy plan
 
 The LienDeadline GCP project (set `PROJECT` to its ID, recorded in the Ops repository), region

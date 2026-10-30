@@ -2,8 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Ops supplies its locked Node runtime and an isolated environment. Dependency
-# installation is a separate, explicit npm ci step using npm-shrinkwrap.json.
 node_executable="${NODE_EXECUTABLE:-node}"
 npm_executable="${NPM_EXECUTABLE:-npm}"
 node_executable="$(command -v "$node_executable")"

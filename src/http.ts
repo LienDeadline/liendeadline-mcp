@@ -22,30 +22,22 @@ function envInt(name: string, fallback: number, min: number): number {
 }
 
 const PORT = envInt("PORT", 8080, 0);
-// Bind to loopback unless told otherwise; the container image sets HOST=0.0.0.0 for Cloud Run.
 const HOST = process.env.HOST || "127.0.0.1";
 const BASE_URL = process.env.LIENDEADLINE_API_URL?.replace(/\/+$/, "") || DEFAULT_BASE_URL;
 const MAX_BODY_BYTES = envInt("MCP_MAX_BODY_BYTES", 64 * 1024, 1);
 const REQUEST_TIMEOUT_MS = envInt("MCP_REQUEST_TIMEOUT_MS", 30_000, 1);
 const RATE_LIMIT_MAX = envInt("MCP_RATE_LIMIT_MAX", 120, 1);
 const RATE_LIMIT_WINDOW_MS = envInt("MCP_RATE_LIMIT_WINDOW_MS", 60_000, 1);
-// Proxies in front of this server that append the client address to X-Forwarded-For: 1 for
-// Cloud Run alone, 2 when a proxied Cloudflare hostname sits in front of it, 0 locally.
 const TRUST_PROXY_HOPS = envInt("MCP_TRUST_PROXY_HOPS", 0, 0);
 const analytics = createHostedAnalytics(VERSION);
 
 const MCP_PATH = "/mcp";
-// Cloud Run's front end answers paths ending in "z" itself, so /health is the externally reachable alias.
 const HEALTH_PATHS = new Set(["/healthz", "/health"]);
-// OpenAI's app directory verifies domain ownership by fetching the token it issues from this path
-// as plain text. The path answers 404 until OPENAI_APPS_CHALLENGE is set.
 const OPENAI_CHALLENGE_PATH = "/.well-known/openai-apps-challenge";
 const OPENAI_APPS_CHALLENGE = process.env.OPENAI_APPS_CHALLENGE?.trim() ?? "";
 if (OPENAI_APPS_CHALLENGE && !/^[\x21-\x7e]{1,512}$/.test(OPENAI_APPS_CHALLENGE)) {
   throw new Error("OPENAI_APPS_CHALLENGE must be 1 to 512 printable ASCII characters without spaces.");
 }
-// Clients such as Claude show the favicon of the server's host next to the connector. The image
-// copies assets/icon.png next to dist/; without it these paths answer 404.
 const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.png"]);
 const FAVICON = (() => {
   try {
@@ -55,7 +47,6 @@ const FAVICON = (() => {
   }
 })();
 
-// Browser MCP clients may supply their own explicit Bearer key. No ambient cookies are accepted.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Expose-Headers": "Mcp-Session-Id, Mcp-Protocol-Version",
@@ -96,7 +87,6 @@ class RateLimiter {
     let entry = this.#hits.get(key);
     if (!entry || entry.resetAt <= now) {
       this.#hits.delete(key);
-      // Bound memory under address churn by dropping the oldest window.
       if (this.#hits.size >= this.maxClients) this.#hits.delete(this.#hits.keys().next().value!);
       entry = { count: 0, resetAt: now + this.windowMs };
       this.#hits.set(key, entry);
@@ -150,7 +140,6 @@ function readBody(req: IncomingMessage, limit: number): Promise<{ tooLarge: true
       size += chunk.length;
       if (size > limit) {
         cleanup();
-        // Discard whatever is still arriving until the connection closes after the 413.
         req.resume();
         resolve({ tooLarge: true });
       } else {
@@ -178,16 +167,12 @@ function readBody(req: IncomingMessage, limit: number): Promise<{ tooLarge: true
 
 /** One stateless MCP exchange: a fresh server and transport with caller-scoped credentials for this request alone. */
 async function handleMcp(req: IncomingMessage, res: ServerResponse, message: unknown) {
-  // Never use a service-wide customer key. Forward only this caller's exact key;
-  // the API rechecks revocation, ownership, scope and plan for each tool call.
   const auth = req.headers.authorization;
   const customerApiKey = typeof auth === "string" && /^Bearer ld_live_[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/.test(auth)
     ? auth.slice(7) : undefined;
   const server = buildServer({ includeCustomerTools: false, baseUrl: BASE_URL, customerApiKey });
   analytics?.instrument(server);
   if (analytics) {
-    // The SDK otherwise adds a client/session correlation token to initialize responses.
-    // This endpoint remains stateless and intentionally does not expose that token.
     const setHeader = res.setHeader;
     res.setHeader = function (name, value) {
       return name.toLowerCase() === "mcp-session-id" ? this : setHeader.call(this, name, value);
@@ -201,7 +186,6 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse, message: unk
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    // Closing first aborts the tool handler, so a late result is dropped instead of written after this reply.
     release();
     if (!res.headersSent) sendJson(res, 504, rpcError(-32001, "Request timed out."), { Connection: "close" });
     else res.destroy();
@@ -254,7 +238,6 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(204, PREFLIGHT_HEADERS).end();
     return;
   }
-  // Stateless: there is no server-initiated SSE stream (GET) and no session to delete (DELETE).
   if (req.method !== "POST") return sendJson(res, 405, rpcError(-32000, "Method not allowed."), { Allow: "POST, OPTIONS" });
 
   const retryAfter = limiter.hit(clientKey(req));
@@ -280,14 +263,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 }
 
 const httpServer = createServer({
-  // Bound slow uploads; MCP processing is bounded separately by REQUEST_TIMEOUT_MS.
   headersTimeout: Math.min(10_000, REQUEST_TIMEOUT_MS),
   requestTimeout: REQUEST_TIMEOUT_MS,
   connectionsCheckingInterval: Math.min(1_000, REQUEST_TIMEOUT_MS),
 }, (req, res) => {
   const started = performance.now();
   res.on("close", () => {
-    // 499: the client went away before the response finished.
     const status = res.writableFinished ? res.statusCode : 499;
     log({
       severity: status >= 500 ? "ERROR" : "INFO",
@@ -297,7 +278,6 @@ const httpServer = createServer({
     });
   });
   handle(req, res).catch(() => {
-    // Details are deliberately not logged: they can echo request content.
     if (!res.headersSent) sendJson(res, 500, rpcError(-32603, "Internal error"));
     else res.destroy();
   });
@@ -316,7 +296,6 @@ httpServer.listen(PORT, HOST, () => {
   });
 });
 
-// Cloud Run sends SIGTERM before stopping an instance: finish in-flight requests, then exit.
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.once(signal, () => {
     httpServer.close(async () => {

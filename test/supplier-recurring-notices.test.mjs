@@ -13,7 +13,6 @@ const KEY = 'ld_live_' + 'a'.repeat(32) + '.' + 'b'.repeat(43);
 const BASE = 'https://secure-api-v1.liendeadline.com';
 const checkpointId = id => 'nh_account_check_in_' + createHash('sha256').update(JSON.stringify(id)).digest('hex').slice(0, 16);
 const valid = value => isSupplierResultV3(value, value.inputs);
-// Synthetic contract fixtures; not statute calculations, legal approval or service evidence.
 function tnResult() {
   const value = structuredClone(result);
   value.preliminary_notice = structuredClone(value.preliminary_notice);
@@ -270,7 +269,7 @@ test('actual as-of bounds and paid/unresolved classification cannot be forged', 
   const paid = tnResult(); delete paid.preliminary_notice.notice_duties;
   paid.preliminary_notice = { ...paid.preliminary_notice, status: 'not_required', required: false, deadline: null, days_from_now: null };
   paid.preliminary_notice.recurring_notice_periods.forEach(p => { p.status = 'not_required'; });
-  assert.equal(valid(paid), false); // Unpaid/unknown inputs cannot be relabeled paid.
+  assert.equal(valid(paid), false);
   for (const mutate of [
     v => { v.inputs.events.nh_owner_notice_given.date = '2026-07-02'; },
     v => { v.inputs.recurring_notice_facts.accounts = [{ id: 'future', covered_through: '2026-07-01', supplied_date: '2026-07-02' }]; },
@@ -371,8 +370,6 @@ test('2025 source-held month preserves known June residential exemption under ag
 });
 
 
-// Actual full-engine outputs after final root .8 binding, with synthetic offline
-// approval only. These are not hosted API results or legal approval.
 const freshBytes = readFileSync(new URL('./fixtures/supplier_recurring_notice_targets_v1.json', import.meta.url));
 const fresh = JSON.parse(freshBytes);
 test('final bound recurring fixture is the exact API export and preserves canonical versus synthetic identity', () => {
@@ -405,7 +402,7 @@ test('actual recurring chronology preserves incomplete coverage, exemptions, hol
   }
   assert.equal(outcome('tn_calendar_2027').deadline, '2027-03-01');
   const owner = outcome('nh_commercial_contractor_owner_anchor').recurring_notice_checkpoints[0];
-  assert.equal(owner.target_date, '2026-06-27'); // Saturday preserved for advisory civil+30.
+  assert.equal(owner.target_date, '2026-06-27');
   const account = outcome('nh_commercial_contractor_account_anchor').recurring_notice_checkpoints[0];
   assert.equal(account.target_date, '2026-07-20'); assert.equal(account.basis.account_id, 'june_account');
   assert.equal(account.legal_status, 'review_required'); assert.equal(Object.hasOwn(account, 'deadline'), false);

@@ -10,7 +10,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`; // Synthetic only.
+const KEY = `ld_live_${'0'.repeat(32)}.${'A'.repeat(43)}`;
 const MOCK = fileURLToPath(new URL('./mock-runtime.mjs', import.meta.url));
 const source = file => fileURLToPath(new URL(`../src/${file}`, import.meta.url));
 const PUBLIC_TOOLS = ['calculate_supplier_deadlines', 'get_supplier_questions', 'calculate_supplier_deadlines_v3', 'get_state_lien_guide', 'list_state_lien_guides'];
@@ -81,11 +81,9 @@ test('hosted initialize and tools/list over HTTP return exactly the five public 
       assert.deepEqual(tools.map(t => t.name), PUBLIC_TOOLS);
       for (const tool of tools) {
         assert.ok(tool.title, `${tool.name} has a title`);
-        // Directory reviewers read the title from the annotations, so it must repeat the tool title.
         assert.deepEqual(tool.annotations, { title: tool.title, readOnlyHint: !tool.name.startsWith('calculate_'), destructiveHint: false, idempotentHint: !tool.name.startsWith('calculate_'), openWorldHint: true });
       }
       assert.doesNotMatch(client.getInstructions(), /calculate_lien_deadline|list_supported_states|LIENDEADLINE_API_KEY/);
-      // Customer tools are not registered at all, so they cannot be called either.
       for (const name of ['calculate_lien_deadline', 'list_supported_states']) {
         const result = await client.callTool({ name, arguments: { state: 'TX', invoice_date: '2026-07-01' } });
         assert.equal(result.isError, true);
@@ -172,7 +170,6 @@ test('hosted mode never sends Authorization upstream, even with a customer key i
       for (const [name, args] of [
         ['calculate_supplier_deadlines', SUPPLIER_ARGS], ['get_state_lien_guide', { state: 'TX' }], ['list_state_lien_guides', {}],
       ]) {
-        // The mock fails any upstream request that carries Authorization, which would make this an error.
         const result = await client.callTool({ name, arguments: args });
         assert.equal(Boolean(result.isError), name === 'calculate_supplier_deadlines');
         assert.equal(text(result).includes(KEY), false);
@@ -225,14 +222,12 @@ test('oversized request bodies are rejected with 413 before reaching MCP', async
     assert.equal(declared.status, 413);
     assert.match((await declared.json()).error.message, /must not exceed 65536 bytes/);
 
-    // Without Content-Length the limit applies while streaming.
     const chunks = [padded(40 * 1024), padded(40 * 1024)].map(s => new TextEncoder().encode(s));
     const stream = new ReadableStream({ pull(controller) { const next = chunks.shift(); next ? controller.enqueue(next) : controller.close(); } });
     const chunked = await fetch(url, { method: 'POST', headers: MCP_HEADERS, body: stream, duplex: 'half' });
     assert.equal(chunked.status, 413);
     await chunked.body?.cancel();
 
-    // A body under the limit still reaches the MCP server.
     const ok = await post(url, initialize(1).replace('"capabilities":{}', `"capabilities":{},"_pad":"${'x'.repeat(60 * 1024)}"`));
     assert.equal(ok.status, 200);
     assert.equal((await ok.json()).result.serverInfo.name, 'liendeadline');
@@ -284,16 +279,13 @@ test('per-client rate limit counts the proxy-reported address and returns 429 wi
       return response;
     };
     assert.equal((await status('203.0.113.9, 198.51.100.1')).status, 200);
-    // Entries left of the trusted hop are client-supplied and cannot buy a fresh window.
     const limited = await status('192.0.2.77, 198.51.100.1');
     assert.equal(limited.status, 429);
     assert.ok(Number(limited.headers.get('retry-after')) >= 1);
     assert.equal((await status('198.51.100.2')).status, 200);
-    // One IPv6 /64 shares a window.
     assert.equal((await status('2001:db8:1:2::1')).status, 200);
     assert.equal((await status('2001:db8:1:2:ffff::9')).status, 429);
     assert.equal((await status('2001:db8:1:3::1')).status, 200);
-    // Health checks are never limited.
     assert.equal((await fetch(new URL('/healthz', url))).status, 200);
   });
 });
@@ -307,7 +299,6 @@ test('a slow tool call times out with 504 and its late result is dropped', async
     assert.equal(response.status, 504);
     assert.equal((await response.json()).error.code, -32001);
     assert.ok(Date.now() - started < 1000, 'answered before the upstream call finished');
-    // Once the upstream call completes, the dropped result must not break the server.
     await new Promise(resolve => setTimeout(resolve, 1000));
     assert.equal((await fetch(new URL('/healthz', url))).status, 200);
     assert.doesNotMatch(errors(), /Error/, 'no late write after the timeout reply');
