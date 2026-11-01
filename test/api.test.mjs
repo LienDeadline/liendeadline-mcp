@@ -37,7 +37,36 @@ test('protected routes send dedicated Bearer only in headers', async () => {
     assert.equal((c.init.body ?? '').includes(KEY), false);
     assert.equal(c.init.redirect, 'error');
   }
-  assert.deepEqual(JSON.parse(calls[0].init.body), input);
+  assert.deepEqual(JSON.parse(calls[0].init.body), { ...input, project_type: 'commercial' });
+});
+
+for (const projectType of ['commercial', 'Commercial', 'COMMERCIAL', 'residential', 'Residential', 'rEsIdEnTiAl', undefined]) {
+  test(`invoice calculation sends API-compatible project type for ${projectType ?? 'omitted'}`, async t => {
+    const request = { state: 'TX', invoice_date: '2026-07-01', ...(projectType === undefined ? {} : { project_type: projectType }) };
+    const before = structuredClone(request);
+    const calls = [];
+    t.mock.method(globalThis, 'fetch', async (_url, init) => {
+      const body = JSON.parse(init.body);
+      calls.push(body);
+      // CalculationRequest in the API accepts only these lowercase literals.
+      if (Object.hasOwn(body, 'project_type') && !['commercial', 'residential'].includes(body.project_type)) {
+        return Response.json({ detail: 'Invalid project type' }, { status: 422 });
+      }
+      return Response.json({ data: { ...body, project_type: body.project_type ?? 'commercial' } });
+    });
+    const result = await calculateDeadline(DEFAULT_BASE_URL, request, KEY);
+    assert.equal(result.project_type, projectType?.toLowerCase() ?? 'commercial');
+    assert.deepEqual(calls, [{ ...request, ...(projectType === undefined ? {} : { project_type: projectType.toLowerCase() }) }]);
+    assert.deepEqual(request, before);
+  });
+}
+
+test('unsupported invoice project types fail locally without guessing a calculation scope', async () => {
+  const calls = mock({});
+  for (const projectType of ['public', 'industrial', '', ' commercial ']) {
+    await assert.rejects(() => calculateDeadline(DEFAULT_BASE_URL, { ...input, project_type: projectType }, KEY), /project_type must be commercial or residential/i);
+  }
+  assert.equal(calls.length, 0);
 });
 
 test('missing key fails before HTTP with actionable configuration error', async () => {

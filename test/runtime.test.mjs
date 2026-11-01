@@ -85,6 +85,22 @@ test('missing runtime key returns actionable MCP errors while guide tools work',
   });
 });
 
+test('actual stdio invoice tool accepts the advertised project types and preserves API casing', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
+    for (const projectType of ['Commercial', 'Residential', 'COMMERCIAL', 'residential', undefined]) {
+      const result = await client.callTool({
+        name: 'calculate_lien_deadline',
+        arguments: { state: 'TX', invoice_date: '2026-07-01', ...(projectType === undefined ? {} : { project_type: projectType }) },
+      });
+      assert.notEqual(result.isError, true, text(result));
+      assert.equal(JSON.parse(text(result)).project_type, projectType?.toLowerCase() ?? 'commercial');
+    }
+    const invalid = await client.callTool({ name: 'calculate_lien_deadline', arguments: { state: 'TX', invoice_date: '2026-07-01', project_type: 'public' } });
+    assert.equal(invalid.isError, true);
+    assert.match(text(invalid), /project_type must be commercial or residential/i);
+  });
+});
+
 test('supplier tool works with an account key and returns the verified echo', async () => {
   await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });

@@ -350,10 +350,14 @@ export async function calculateDeadline(
   input: CalculateInput,
   apiKey?: string,
 ): Promise<DeadlineResult> {
+  const projectType = input.project_type?.toLowerCase();
+  if (projectType !== undefined && projectType !== "commercial" && projectType !== "residential") {
+    throw new LienDeadlineApiError("Invalid invoice request: project_type must be commercial or residential (case-insensitive).");
+  }
   const raw = await request<Record<string, unknown>>(baseUrl, "/api/v1/calculate-deadline", {
     method: "POST",
     headers: customerHeaders(baseUrl, apiKey),
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, project_type: projectType }),
   });
   const payload = (raw.data ?? raw.result ?? raw) as Record<string, unknown>;
   return {
