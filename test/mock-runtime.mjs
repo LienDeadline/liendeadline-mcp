@@ -35,11 +35,17 @@ globalThis.fetch = async (url, init) => {
   if (process.env.MCP_TEST_STATUS) {
     return new Response(JSON.stringify({ detail: process.env.LIENDEADLINE_API_KEY }), { status: Number(process.env.MCP_TEST_STATUS) });
   }
+  if (path === '/api/v1/calculate-deadline') {
+    const inputs = JSON.parse(init.body);
+    if (Object.hasOwn(inputs, 'project_type') && !['commercial', 'residential'].includes(inputs.project_type)) {
+      return Response.json({ detail: 'Invalid project type' }, { status: 422 });
+    }
+  }
   const body = path === '/api/v1/supplier-deadlines/questions' ? {...discovery, scope: Object.fromEntries(new URL(url).searchParams)}
     : path === '/api/v1/supplier-deadlines/v3' ? {...(process.env.MCP_TEST_V3_ACTION === "1" ? conservativeResult : result), inputs: JSON.parse(init.body)}
     : path === '/api/v1/supplier-deadlines' ? supplierEcho(JSON.parse(init.body))
     : path === '/api/v1/calculate-deadline'
-    ? { data: { state: 'TX', invoice_date: '2026-07-01', lien_deadline: '2026-10-15' } }
+    ? { data: { state: 'TX', invoice_date: '2026-07-01', project_type: JSON.parse(init.body).project_type ?? 'commercial', lien_deadline: '2026-10-15' } }
     : path === '/api/v1/supported-states' ? { states: ['TX', 'CA'] }
     : path === '/api/v1/state-guides/index' ? { states: [{ state_code: 'TX', title: 'Texas', slug: 'texas' }] }
     : { data: { state_code: 'TX', title: 'Texas', slug: 'texas' } };

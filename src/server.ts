@@ -293,7 +293,7 @@ export function buildServer(options: ServerOptions): McpServer {
           project_type: z
             .string()
             .optional()
-            .describe('Usually "Commercial" or "Residential". Changes the deadline in some states.'),
+            .describe('"commercial" or "residential" (case-insensitive). Omit for commercial. Changes the deadline in some states.'),
           notice_date: z
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
