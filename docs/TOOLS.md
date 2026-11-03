@@ -535,7 +535,7 @@ invoice or delivery date and state. The key needs the `deadline:calculate` scope
 | `state` | string of exactly two characters | Yes | US state code, for example `TX`, `CA` or `DC`, from the jurisdictions the customer API supports. |
 | `invoice_date` | string, `YYYY-MM-DD` | Yes | Invoice or delivery date. Deadlines count from it. |
 | `project_type` | string | No | Usually `Commercial` or `Residential`. Changes the deadline in some states. |
-| `notice_date` | string, `YYYY-MM-DD` | No | Date a preliminary notice was actually sent, if one was. |
+| `notice_date` | string, `YYYY-MM-DD` | No | Notice of completion date, if known; not the date a preliminary notice was sent. Omit otherwise. |
 | `role` | string | No | Your role on the project, for example `supplier`, `contractor` or `subcontractor`. |
 
 The result has `state`, `invoice_date`, `project_type`, `preliminary_notice_deadline`,

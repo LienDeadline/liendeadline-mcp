@@ -1,4 +1,5 @@
 import { discovery, result, conservativeResult } from "./supplier-v3-fixture.mjs";
+import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -37,6 +38,10 @@ globalThis.fetch = async (url, init) => {
   }
   if (path === '/api/v1/calculate-deadline') {
     const inputs = JSON.parse(init.body);
+    if (process.env.MCP_TEST_EXPECTED_INVOICE_BODY) {
+      assert.equal(init.method, 'POST');
+      assert.deepEqual(inputs, JSON.parse(process.env.MCP_TEST_EXPECTED_INVOICE_BODY));
+    }
     if (Object.hasOwn(inputs, 'project_type') && !['commercial', 'residential'].includes(inputs.project_type)) {
       return Response.json({ detail: 'Invalid project type' }, { status: 422 });
     }
