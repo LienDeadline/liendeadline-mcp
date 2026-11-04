@@ -46,8 +46,8 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@posthog/mcp": "0.23.0",
-    "posthog-node": "5.57.2",
+    "@posthog/mcp": "0.25.0",
+    "posthog-node": "5.61.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
