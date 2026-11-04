@@ -298,7 +298,7 @@ export function buildServer(options: ServerOptions): McpServer {
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
             .optional()
-            .describe("Date a preliminary notice was actually sent, YYYY-MM-DD, if one was. Omit otherwise."),
+            .describe("Notice of completion date in YYYY-MM-DD format, if known; not the date a preliminary notice was sent. Omit otherwise."),
           role: z
             .string()
             .optional()

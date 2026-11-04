@@ -101,6 +101,30 @@ test('actual stdio invoice tool accepts the advertised project types and preserv
   });
 });
 
+test('actual stdio invoice schema identifies notice_date as a notice of completion', async () => {
+  await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
+    const { tools } = await client.listTools();
+    const schema = tools.find(tool => tool.name === 'calculate_lien_deadline').inputSchema;
+    const notice = schema.properties.notice_date;
+    assert.equal(notice.type, 'string');
+    assert.match(notice.description, /notice of completion/i);
+    assert.match(notice.description, /not.*preliminary notice/i);
+    assert.match(notice.description, /omit/i);
+    assert.equal(schema.required.includes('notice_date'), false);
+  });
+});
+
+test('actual stdio invoice tool preserves a completion notice date or its omission in the API payload', async () => {
+  for (const noticeDate of ['2026-07-10', undefined]) {
+    const args = { state: 'CA', invoice_date: '2026-07-01', project_type: 'commercial', role: 'supplier',
+      ...(noticeDate === undefined ? {} : { notice_date: noticeDate }) };
+    await withClient({ LIENDEADLINE_API_KEY: KEY, MCP_TEST_EXPECTED_INVOICE_BODY: JSON.stringify(args) }, async client => {
+      const result = await client.callTool({ name: 'calculate_lien_deadline', arguments: args });
+      assert.notEqual(result.isError, true, text(result));
+    });
+  }
+});
+
 test('supplier tool works with an account key and returns the verified echo', async () => {
   await withClient({ LIENDEADLINE_API_KEY: KEY }, async client => {
     const result = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS });
