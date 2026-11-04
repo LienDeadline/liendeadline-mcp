@@ -56,6 +56,20 @@ const INVOICE_INPUT_HINT =
 
 const GUIDE_INPUT_HINT = " Check that state is a two-letter US state or DC code.";
 
+const KANSAS_REVIEW_HINT =
+  " Kansas invoice-only requests require review of the final furnishing event and hiring relationship. " +
+  "No dates were calculated. For material suppliers, use get_supplier_questions with the verified project scope, " +
+  "then confirm the discovered facts before requesting a calculation; do not substitute invoice dates for furnishing dates. " +
+  "Obtain qualified review when the facts or applicability remain uncertain.";
+
+function isKansasReviewRequired(body: unknown): boolean {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return false;
+  const detail = (body as Record<string, unknown>).detail;
+  if (!detail || typeof detail !== "object" || Array.isArray(detail)) return false;
+  const reason = detail as Record<string, unknown>;
+  return reason.code === "kansas_event_review_required" && reason.status === "review_required";
+}
+
 async function request<T>(
   baseUrl: string,
   path: string,
@@ -81,6 +95,10 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 422 && path === "/api/v1/calculate-deadline" &&
+        isKansasReviewRequired(await res.json().catch(() => null))) {
+      throw new LienDeadlineApiError(`LienDeadline API returned 422.${KANSAS_REVIEW_HINT}`, 422);
+    }
     const hint =
       res.status === 401
         ? " Check that LIENDEADLINE_API_KEY is an active, unexpired customer key; replace revoked or rotated keys."
