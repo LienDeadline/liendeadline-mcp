@@ -155,7 +155,7 @@ export function buildServer(options: ServerOptions): McpServer {
         "exact echo of the submitted inputs and a disclaimer. Invalid or contradictory facts return an " +
         "error naming the field before any API call. Requires a customer key and consumes one plan calculation unit. " +
         "No project is saved, notice sent or lien filed. Not legal advice.",
-      inputSchema: {
+      inputSchema: z.object({
         state: z
           .string()
           .regex(/^[A-Za-z]{2}$/)
@@ -219,7 +219,11 @@ export function buildServer(options: ServerOptions): McpServer {
             "Kansas only: was a statutory lien-period extension filed and mailed? no permits the ordinary " +
               "lien baseline; yes, unknown or omitted requires qualified review.",
           ),
-      },
+      }, {
+        error: (issue) => issue.code === "unrecognized_keys" && issue.keys.includes("special_events_reviewed")
+          ? "special_events_reviewed is not supported by supplier-events-v2; answer the Florida or Kansas event questions explicitly"
+          : undefined,
+      }).strict(),
       annotations: { title: "Calculate supplier notice and lien deadlines", ...READ_ONLY, readOnlyHint: false, idempotentHint: false },
     },
     async (args) => {
