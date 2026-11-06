@@ -301,6 +301,12 @@ export function isVerifiedSupplierCalculation(
       ((floridaNoticeNeedsReview || floridaLienNeedsReview || kansasLienNeedsReview) && r.status !== "review_required")) {
     return false;
   }
+  // V2 promotes either child's review to the overall status, including reviews
+  // unrelated to missing event answers. Awaiting delivery alone is not equivalent.
+  if (r.status === "calculated" &&
+      (r.preliminary_notice?.status === "review_required" || r.lien_filing?.status === "review_required")) {
+    return false;
+  }
   return exactEcho &&
     r.contract_version === SUPPLIER_EVENTS_CONTRACT_VERSION &&
     r.role === "supplier" &&
