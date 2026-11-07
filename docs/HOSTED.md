@@ -219,17 +219,22 @@ events, two-second collector requests, no retries and a three-second shutdown dr
 is best effort; a collector outage can leave counts incomplete. The stdio entry point does not
 load this integration. Its upstream API requests can still be attributed as MCP requests.
 
-The send filter constructs a new payload containing only event name, tool name, success/error,
-duration, a fixed client-family bucket, server version, environment and schema version. Each
-event has a new random identifier; person profiles and GeoIP are disabled. Tool parameters,
-results, intent, model, session/conversation IDs, raw client metadata, headers and exception
-details are removed. SDK options preserve the existing tool schemas and results.
+The send filter constructs a new payload from allowlisted fields, including tool name, success,
+duration, a fixed client-family bucket, server version, environment, and a fixed intent label
+and source. Each event has a new random identifier. Person profiles and GeoIP are disabled.
+Tool parameters, results, model, session and conversation IDs, raw client metadata, headers and
+exception details are removed.
+
+The SDK advertises a `context` field with a short list of approved goals. Exact matches are
+recorded with `$mcp_intent_source = context_parameter`. If the field is omitted, blank, or
+outside the approved list, the event uses a goal based on the tool name with source `inferred`.
+The SDK strips `context` before the handler runs, and the send filter discards free text.
 The HTTP boundary also suppresses the SDK's optional session-correlation response header,
 preserving the endpoint's existing stateless interface.
 
 This supports PostHog's [native MCP Analytics](https://posthog.com/docs/mcp-analytics/start-here)
-for tool volume, failures and latency. Unique users, retained sessions and intent analysis are
-not measured. `review_required` is a successful calculation result, not an MCP failure.
+for tool volume, failures, latency and coarse intent. `review_required` counts as a successful
+calculation. Per-event identifiers keep usage aggregates anonymous.
 
 Usage dashboards live in the private PostHog project. They compare native tool calls, API
 requests attributed to MCP and skills, and skill-document requests, using production events.
