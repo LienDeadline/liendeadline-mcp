@@ -1,7 +1,7 @@
 {
   "serverInfo": {
     "name": "LienDeadline",
-    "version": "0.5.7"
+    "version": "0.5.8"
   },
   "description": "US mechanics lien and preliminary notice deadlines for construction material suppliers. Start with v3 discovery for any US state or DC, the project type, and who hired the supplier. Discovery returns current scope support, questions, and exact rule identities. The legacy v2 baseline covers Florida and Kansas private projects. Supplier discovery and calculations require a customer key. Discovery uses no calculation allowance; completed calculations consume plan allowance. Statute-cited editorial lien guides for all 50 states and DC are public without a key.",
   "capabilities": {

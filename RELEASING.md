@@ -40,7 +40,7 @@ security or create credentials merely to bypass that prerequisite.
    that exact tarball with `--access public --provenance` through OIDC. It does not run
    the full test suite or call OpenAI. Only the publishing job has `id-token: write`;
    its GitHub environment is `release`. Both official actions are pinned to verified
-   commit SHAs, Node is locked to 24.20.0, npm must be at least 11.5.1, and dependency
+   commit SHAs, Node is locked to 24.22.2, npm must be at least 11.5.1, and dependency
    caching is disabled.
 
    Reuse the existing npm trusted publisher for `liendeadline-mcp`:

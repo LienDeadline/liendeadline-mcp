@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "liendeadline",
   "display_name": "LienDeadline",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Supplier lien and notice deadlines by project scope, plus public guides for all 50 states and DC.",
   "long_description": "Calculates material supplier notice and lien outcomes from delivery facts using LienDeadline's API. Start with v3 discovery for any US state or DC, the project type, and who hired the supplier. Discovery returns current scope support, questions, and exact rule identities. The legacy v2 baseline covers Florida and Kansas private projects. Supplier discovery and calculations require a dedicated customer key. Discovery uses no calculation allowance; completed calculations consume plan allowance. Editorial lien guides for all 50 states and DC are public without a key. Unresolved facts and unsupported scopes need qualified review. Not legal advice.",
   "author": {

@@ -9,7 +9,7 @@
 
 import { isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3, isSupplierScopeV3, type SupplierDiscovery, type SupplierRequestV3, type SupplierResultV3, type SupplierScopeV3 } from "./supplier-v3.ts";
 
-export const VERSION = "0.5.7";
+export const VERSION = "0.5.8";
 
 export const DEFAULT_BASE_URL = "https://secure-api-v1.liendeadline.com";
 

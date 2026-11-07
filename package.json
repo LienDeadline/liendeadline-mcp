@@ -1,6 +1,6 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Check live project coverage and calculate statute-cited supplier notice and mechanics lien deadlines. Public lien guides cover all 50 states and DC.",
   "type": "module",
   "bin": {
