@@ -2,7 +2,7 @@ steps:
   - name: node:22-alpine
     id: checks
     entrypoint: sh
-    args: ["-ec", "npm ci --ignore-scripts && npm run build && npm run typecheck && npm test"]
+    args: ["-ec", "apk add --no-cache git && npm ci --ignore-scripts && npm run build && npm run typecheck && npm test"]
   - name: gcr.io/cloud-builders/docker
     args: ["build", "--target", "http", "--tag", "${_IMAGE}", "."]
 images: ["${_IMAGE}"]
