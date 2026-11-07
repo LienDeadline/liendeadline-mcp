@@ -79,18 +79,26 @@ test('privacy filter reconstructs native events without identity, project facts 
   assert.equal(await filter({ ...raw, properties: { ...raw.properties, $mcp_tool_name: 'private-tool-name' } }), null);
 });
 
-test('native SDK preserves schemas and results and emits sanitized success/error events once', async () => {
+test('native SDK captures safe intent and preserves tool results and error reporting', async () => {
   const originalTools = await withServer(undefined, async client => (await client.listTools()).tools);
   const events = [];
   const analytics = createHostedAnalytics('0.4.2', ENV, () => ({
     on() {}, capture(event) { events.push(event); }, async shutdown() {},
   }));
   await withServer(analytics, async client => {
-    assert.deepEqual((await client.listTools()).tools, originalTools);
-    const guide = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX' } });
-    assert.notEqual(guide.isError, true);
-    assert.equal(guide.content.length, 1);
-    assert.equal(JSON.parse(guide.content[0].text).state_code, 'TX');
+    const { tools } = await client.listTools();
+    for (const original of originalTools) {
+      const advertised = tools.find(tool => tool.name === original.name);
+      const { context, ...properties } = advertised.inputSchema.properties;
+      assert.equal(context?.type, 'string');
+      assert.deepEqual(properties, original.inputSchema.properties);
+    }
+    for (const context of [undefined, '', '   ', 'Determine supplier notice and lien deadlines', 'private-project 2030-01-15']) {
+      const guide = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX', context } });
+      assert.notEqual(guide.isError, true);
+      assert.equal(guide.content.length, 1);
+      assert.equal(JSON.parse(guide.content[0].text).state_code, 'TX');
+    }
     const review = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: {
       state: 'FL', first_delivery_date: '2026-08-03', last_delivery_date: '2026-09-10',
       project_type: 'commercial', hired_by: 'subcontractor', deliveries_complete: true,
@@ -105,9 +113,20 @@ test('native SDK preserves schemas and results and emits sanitized success/error
     await new Promise(resolve => setImmediate(resolve));
   });
   const calls = events.filter(event => event.event === '$mcp_tool_call');
-  assert.equal(calls.length, 3);
-  assert.deepEqual(calls.map(event => event.properties.$mcp_is_error), [false, false, true]);
+  assert.deepEqual(calls.map(event => [
+    event.properties.$mcp_intent,
+    event.properties.$mcp_intent_source,
+    event.properties.$mcp_is_error,
+  ]), [
+    ["Read a state's lien guide", 'inferred', false],
+    ["Read a state's lien guide", 'inferred', false],
+    ["Read a state's lien guide", 'inferred', false],
+    ['Determine supplier notice and lien deadlines', 'context_parameter', false],
+    ["Read a state's lien guide", 'inferred', false],
+    ['Determine supplier notice and lien deadlines', 'inferred', false],
+    ['Determine supplier notice and lien deadlines', 'inferred', true],
+  ]);
   assert.ok(calls.every(event => Number.isFinite(event.properties.$mcp_duration_ms)));
   assert.equal(new Set(events.map(event => event.distinctId)).size, events.length);
-  assert.doesNotMatch(JSON.stringify(events), /private|sensitive-version|2026-08-03|review_required|last_delivery_date|\$session_id|\$mcp_parameters|\$mcp_response/);
+  assert.doesNotMatch(JSON.stringify(events), /private|sensitive-version|2026-08-03|2030-01-15|review_required|last_delivery_date|\$session_id|\$mcp_parameters|\$mcp_response/);
 });
