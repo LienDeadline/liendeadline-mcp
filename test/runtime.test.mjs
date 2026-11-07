@@ -73,6 +73,26 @@ test('actual stdio tools use customer key only for protected HTTP calls', async 
   });
 });
 
+test('actual stdio v3 scope schemas describe the supplier project and hiring facts', async t => {
+  await withClient({}, async client => {
+    const { tools } = await client.listTools();
+    for (const name of ['get_supplier_questions', 'calculate_supplier_deadlines_v3']) {
+      const schema = tools.find(tool => tool.name === name).inputSchema;
+      for (const [field, values, meaning] of [
+        ['project_type', ['commercial', 'residential', 'public'], /private commercial.*private residential.*public/i],
+        ['hired_by', ['owner', 'contractor', 'subcontractor'], /who ordered.*materials.*supplier/i],
+      ]) {
+        await t.test(`${name}.${field}`, () => {
+          assert.match(schema.properties[field].description, meaning);
+          assert.equal(schema.properties[field].type, 'string');
+          assert.deepEqual(schema.properties[field].enum, values);
+          assert.ok(schema.required.includes(field));
+        });
+      }
+    }
+  });
+});
+
 test('missing runtime key returns actionable MCP errors while guide tools work', async () => {
   await withClient({ LIENDEADLINE_API_KEY: '' }, async client => {
     for (const [name, args] of [['calculate_lien_deadline', { state: 'TX', invoice_date: '2026-07-01' }], ['list_supported_states', {}]]) {
