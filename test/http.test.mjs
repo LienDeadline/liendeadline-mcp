@@ -102,7 +102,8 @@ test('enabled analytics preserves stateless HTTP tools when the collector is una
       const { tools } = await client.listTools();
       assert.deepEqual(tools.map(tool => tool.name), PUBLIC_TOOLS);
       for (const tool of tools) {
-        for (const field of ['context', 'llm_model', 'conversation_id']) {
+        assert.equal(tool.inputSchema.properties?.context?.type, 'string');
+        for (const field of ['llm_model', 'conversation_id']) {
           assert.equal(Object.hasOwn(tool.inputSchema.properties ?? {}, field), false);
         }
       }

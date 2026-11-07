@@ -33,8 +33,9 @@ Miss a preliminary notice or a lien filing deadline and a supplier can lose its 
 job, and with them the leverage to get paid. The rules change with the state, the project type and
 who hired you. LienDeadline turns your delivery dates into those deadlines and shows its work.
 
-- **Deadlines from delivery dates.** Preliminary notice and lien filing deadlines from your first
-  and last delivery and a few yes, no or unknown questions.
+- **Coverage for your exact project.** Check any US state or DC, project type, and hiring
+  relationship. For supported scopes, use the returned questions to confirm delivery dates and
+  other facts that can affect notice and lien deadlines.
 - **The statute behind every date.** Each deadline cites its source, so your team and your
   counsel can check it.
 - **Never a guessed date.** Missing facts and unsupported project scopes come
@@ -131,6 +132,8 @@ codex mcp add liendeadline -- npx -y liendeadline-mcp
 
 Try asking:
 
+- "What facts do you need to check supplier deadlines for a Maryland commercial project where
+  the owner hired us directly?"
 - "We delivered to a Florida commercial job for a subcontractor from Aug 3 to Sep 10, 2026. No
   final payment, no termination. When are our notice and lien deadlines?"
 - "Same job, but I don't know whether the owner made final payment. What can you tell me?"
@@ -141,23 +144,23 @@ Try asking:
 
 | What | Where | Needs |
 | --- | --- | --- |
-| Supplier discovery and calculations (v3) | Current jurisdiction-specific scope support from `get_supplier_questions`; start here for the state, project type and hiring relationship | Customer key; discovery uses no calculation allowance; completed calculations consume allowance |
+| Supplier discovery and calculations (v3) | Check any US state or DC with `get_supplier_questions`. Dates depend on the exact scope and confirmed facts. | Customer key. Discovery uses no calculation allowance. Completed calculations consume allowance. |
 | Delivery-event baselines (v2) | Florida and Kansas private projects | Customer key; completed calculations consume allowance |
 | Lien guides | All 50 states and DC | Nothing |
 | Invoice-based deadlines | 51 jurisdictions | A [customer API key](https://github.com/LienDeadline/liendeadline-mcp/blob/main/docs/CUSTOMER-API.md) |
 
-The [website calculator](https://liendeadline.com) and v3 tools cover more jurisdictions than the
-v2 Florida/Kansas baseline. V3 discovery reports the current supported scope and its rule
-identities; a guide, research approval or state name alone does not establish a calculated date.
-When a scope or fact needs qualified review, the result explains why. An unavailable reviewed
-source returns an error with no date.
+The [website calculator](https://liendeadline.com/calculator) and the v3 tools use the API's
+current reviewed rules. Start with discovery for the exact project. Supported private scopes
+can produce dates after the relevant facts are confirmed. Public projects and unsupported scopes
+require qualified review. Unresolved facts can also leave individual deadlines under review.
+An unavailable reviewed source returns an error.
 
 ## How it works
 
 1. You ask your AI assistant about a job.
-2. The assistant calls LienDeadline's tools over MCP with the state, the dates and your answers.
-3. LienDeadline applies that state's rules and returns each deadline with its statute, or
-   "needs review" with the reason.
+2. The assistant checks coverage and asks which facts apply to the project.
+3. LienDeadline evaluates the confirmed facts against the discovered rules. Each calculated
+   deadline includes its sources. Unresolved outcomes include the reason.
 4. Before showing a supplier deadline, the server checks that the result echoes exactly the facts
    you sent. A mismatch is reported as an error, never as a date.
 
@@ -165,7 +168,7 @@ source returns an error with no date.
 
 | Tool | What it does | Key |
 | --- | --- | --- |
-| `calculate_supplier_deadlines` | Preliminary notice and lien filing deadlines from delivery dates and yes, no or unknown event answers | Customer |
+| `calculate_supplier_deadlines` | Legacy v2 baselines for Florida and Kansas private projects | Customer |
 | `get_supplier_questions` | Whether v3 covers a state, project type and hiring relationship, with its questions, sources and rule versions | Customer |
 | `calculate_supplier_deadlines_v3` | Deadlines from the facts gathered with `get_supplier_questions` | Customer |
 | `get_state_lien_guide` | One state's lien guide: rules, statute citations, deadline table and FAQs | None |
@@ -186,8 +189,8 @@ Inputs, outputs and statuses are in the [tool reference](https://github.com/Lien
 - **Hosted server.** Its logs record the method, status and response time of each request, never
   your inputs. Google Cloud's own request log also records
   the URL, client IP address and user agent. The
-  server may count usage anonymously in PostHog: tool name, success, duration and client family,
-  with no inputs, results or IP addresses.
+  server may count usage anonymously in PostHog, including tool name, success, duration, client
+  family and a goal from a fixed list. The telemetry excludes tool inputs, results and IP addresses.
 - **Local server.** It has no telemetry of its own.
 
 Details: [LienDeadline privacy policy](https://liendeadline.com/privacy).

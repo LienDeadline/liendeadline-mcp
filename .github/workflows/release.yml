@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '24.20.0'
+          node-version: '24.22.2'
           package-manager-cache: false
       - name: Resolve approved immutable tag
         id: release
@@ -61,7 +61,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '24.20.0'
+          node-version: '24.22.2'
           package-manager-cache: false
       - name: Recheck tag and publishing runtime
         working-directory: release-tools
@@ -71,7 +71,7 @@ jobs:
           node scripts/check-npm-release-ref.mjs > "$RUNNER_TEMP/release-ref"
           grep -Fx "sha=$RELEASE_SHA" "$RUNNER_TEMP/release-ref"
           test "$(git -C ../source rev-parse HEAD)" = "$RELEASE_SHA"
-          node -e 'if (process.version !== "v24.20.0") throw new Error("Unexpected Node runtime")'
+          node -e 'if (process.version !== "v24.22.2") throw new Error("Unexpected Node runtime")'
           npm --version | node -e 'let s=""; for await (const c of process.stdin) s+=c; const [a,b,c]=s.trim().split(".").map(Number); if (!(a>11 || a===11 && (b>5 || b===5 && c>=1))) throw new Error("npm >=11.5.1 is required")'
           test -z "${NODE_AUTH_TOKEN:-}${NPM_TOKEN:-}"
           : > "$RUNNER_TEMP/npm-release.npmrc"

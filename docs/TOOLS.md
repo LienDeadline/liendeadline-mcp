@@ -15,8 +15,8 @@ and `idempotentHint: true`. Every tool has `destructiveHint: false` and `openWor
 | Hosted endpoint, `https://mcp.liendeadline.com/mcp` | Three supplier tools and two public guide tools | Customer key for supplier tools; none for guides |
 | Local npm package (`npx -y liendeadline-mcp`, stdio) | The five hosted tools and two invoice tools | Customer key for supplier and invoice tools; none for guides. See [CUSTOMER-API.md](CUSTOMER-API.md). |
 
-Both servers define the guide and supplier tools with the same code, so their names, descriptions and schemas
-match. [HOSTED.md](HOSTED.md) covers the hosted transport. When a client connects, both servers
+Both servers share the guide and supplier tool definitions. Hosted analytics may advertise an
+additional `context` field for coarse intent, as described in [HOSTED.md](HOSTED.md). When a client connects, both servers
 also send usage guidance in the MCP `instructions` field. The hosted server leaves out the part
 about the local-only invoice tools.
 
@@ -212,20 +212,20 @@ The v3 tools use contract `supplier-events-v3` and work in two steps. Discovery 
 questions that matter for one scope, with identities for the exact rules behind them. The
 calculation evaluates your answers against those exact rules.
 
-1. Call `get_supplier_questions` with `state`, `project_type` and `hired_by`.
-2. Ask the questions that apply (see [conditional questions](#conditional-questions)). Accept
-   `unknown`. Never guess.
+1. Call `get_supplier_questions` with `state`, `project_type` and `hired_by`. Explain the reason
+   if the scope returns `review_required` or `no_lien_right`.
+2. For a supported scope, ask the [applicable questions](#conditional-questions). Confirm any
+   suggested ordinary answers against the project facts and use `unknown` for unconfirmed facts.
 3. Call `calculate_supplier_deadlines_v3` with the same scope, the `rules_source` and
    `questions_identity` copied unchanged from step 1, and your answers in `events`.
 4. If the calculation returns 409, the rules or questions changed after step 1. Start again at
    step 1 and confirm the facts against the new questions.
 
-**Availability.** V3 supports jurisdiction-specific scopes beyond the Florida/Kansas v2 baseline.
-Call `get_supplier_questions` for the current state, project type and hiring relationship; its
-verified response is the authority for scope support and rule identities. Editorial guides and
-research approvals do not establish calculated coverage. An unavailable reviewed source returns
-503 with no questions or dates; stale calculation identities return 409. Neither error implies
-coverage. For Florida and Kansas private projects, `calculate_supplier_deadlines` remains available.
+**Availability.** Check v3 coverage for any US state or DC. The verified discovery response for
+the state, project type, and hiring relationship identifies the current scope and rules. Public
+projects require qualified review. An unavailable reviewed source returns 503. A 409 means the
+calculation needs fresh discovery and fact confirmation. The legacy v2 tool serves Florida and
+Kansas private projects.
 
 ### `get_supplier_questions`
 
@@ -253,6 +253,7 @@ The result has these fields:
 | `questions` | Up to 64 questions, in the order to ask them. |
 | `sources` | Citations, each with `id`, `section` and an HTTPS `official_url`. |
 | `exclusions`, `warnings` | Exclusions and warnings for this scope, as lists of strings. |
+| `short_form` | Optional API presentation guidance for which questions to ask first. |
 
 Each question has these fields:
 
@@ -260,6 +261,7 @@ Each question has these fields:
 | --- | --- |
 | `id` | The event ID: the key for this answer in `events`. |
 | `label`, `help` | The question and its help text. |
+| `group`, `ordinary_answer` | Optional presentation hints. Confirm a suggested ordinary answer with the user when it applies. |
 | `answers` | Always `["yes", "no", "unknown"]`. |
 | `date_policy` | `required_for_calculation_if_yes`: a `yes` answer needs a date for a calculated outcome. `optional_review_only`: a date may go with `yes`, for review only. `forbidden`: never send a date. |
 | `applies_when` | `{ "all": [ { "event": "<earlier question id>", "answer": "yes" } ] }`. Each condition names an earlier question and an answer of `yes` or `no`. An empty list means the question always applies. |
