@@ -12,8 +12,8 @@ const ENV = {
   POSTHOG_HOST: 'https://us.i.posthog.com', POSTHOG_ENVIRONMENT: 'test',
 };
 
-async function withServer(analytics, run) {
-  const server = buildServer({ includeCustomerTools: false, customerApiKey: 'ld_live_' + '0'.repeat(32) + '.' + 'A'.repeat(43) });
+async function withServer(analytics, run, options = {}) {
+  const server = buildServer({ includeCustomerTools: false, customerApiKey: 'ld_live_' + '0'.repeat(32) + '.' + 'A'.repeat(43), ...options });
   analytics?.instrument(server);
   const client = new Client({ name: 'codex/private-customer@example.com', version: 'sensitive-version' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -77,6 +77,96 @@ test('privacy filter reconstructs native events without identity, project facts 
   assert.equal(await filter({ ...raw, event: '$identify' }), null);
   assert.equal(await filter({ ...raw, event: '$exception' }), null);
   assert.equal(await filter({ ...raw, properties: { ...raw.properties, $mcp_tool_name: 'private-tool-name' } }), null);
+});
+
+test('error categories are fixed labels, never arbitrary SDK names or message text', async () => {
+  const filter = privacyFilter('test', '0.5.8');
+  const classify = async (errorType, message, isError = true) => (await filter({
+    event: '$mcp_tool_call', distinct_id: 'private-user', type: 'capture',
+    properties: {
+      $mcp_tool_name: 'get_state_lien_guide', $mcp_is_error: isError,
+      $mcp_error_type: errorType, $mcp_error_message: message,
+      $mcp_error_status: 'private-status', $mcp_response: 'private-response',
+    },
+  })).properties;
+  for (const category of ['validation', 'tool', 'handler', 'timeout', 'cancelled', 'unknown',
+    'internal', 'api_4xx', 'api_5xx', 'permission', 'rate_limited', 'missing_context']) {
+    assert.equal((await classify(category, 'private-error')).$mcp_error_type, category);
+  }
+  for (const [message, expected] of [
+    ['Set LIENDEADLINE_API_KEY to a dedicated customer key. private-key', 'permission'],
+    ['LIENDEADLINE_API_KEY must be a dedicated customer key. private-key', 'permission'],
+    ['MCP error -32602: Input validation error: private-input', 'validation'],
+    ['Invalid supplier request: private-input.', 'validation'],
+    ['Invalid supplier scope: private-input.', 'validation'],
+    ['Invalid supplier-events-v3 request: private-input.', 'validation'],
+    ['Invalid invoice request: private-input.', 'validation'],
+    ['LienDeadline API returned 401. private-body', 'permission'],
+    ['LienDeadline API returned 403. private-body', 'permission'],
+    ['LienDeadline API returned 404. private-body', 'api_4xx'],
+    ['LienDeadline API returned 422. private-body', 'api_4xx'],
+    ['LienDeadline API returned 429. private-body', 'rate_limited'],
+    ['LienDeadline API returned 503. private-body', 'api_5xx'],
+    ['private-error', 'unknown'],
+    [undefined, 'unknown'],
+    [{ private: 'error' }, 'unknown'],
+    ['prefix LienDeadline API returned 503. private-body', 'unknown'],
+    ['LienDeadline API returned 5030. private-body', 'unknown'],
+  ]) {
+    const properties = await classify('Error', message);
+    assert.equal(properties.$mcp_error_type, expected, String(message));
+    assert.doesNotMatch(JSON.stringify(properties), /private|\$mcp_error_message|\$mcp_error_status|\$mcp_response/);
+  }
+  assert.equal((await classify('private-error-name', 'private-error')).$mcp_error_type, 'unknown');
+  assert.equal(Object.hasOwn(await classify('permission', 'private-error', false), '$mcp_error_type'), false);
+});
+
+test('native SDK keeps missing-key and input failures distinguishable without changing results', async () => {
+  const events = [];
+  const analytics = createHostedAnalytics('0.5.8', ENV, () => ({
+    on() {}, capture(event) { events.push(event); }, async shutdown() {},
+  }));
+  await withServer(analytics, async client => {
+    const missingKey = await client.callTool({ name: 'get_supplier_questions', arguments: {
+      state: 'FL', project_type: 'commercial', hired_by: 'contractor',
+    } });
+    assert.equal(missingKey.isError, true);
+    assert.match(missingKey.content[0].text, /^Set LIENDEADLINE_API_KEY/);
+    const invalidState = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'private-state' } });
+    assert.equal(invalidState.isError, true);
+    const invalidFacts = await client.callTool({ name: 'calculate_supplier_deadlines', arguments: {
+      state: 'FL', first_delivery_date: '2026-08-03', project_type: 'commercial',
+      hired_by: 'subcontractor', deliveries_complete: true,
+    } });
+    assert.equal(invalidFacts.isError, true);
+    assert.match(invalidFacts.content[0].text, /^Invalid supplier request:/);
+    await new Promise(resolve => setImmediate(resolve));
+  }, { customerApiKey: undefined });
+  const calls = events.filter(event => event.event === '$mcp_tool_call');
+  assert.deepEqual(calls.map(event => event.properties.$mcp_error_type), ['permission', 'validation', 'validation']);
+  assert.ok(calls.every(event => event.properties.$mcp_is_error === true));
+  assert.doesNotMatch(JSON.stringify(events), /private|LIENDEADLINE_API_KEY|2026-08-03|\$mcp_error_message|\$mcp_parameters|\$mcp_response/);
+});
+
+test('native SDK preserves safe upstream failure categories, not response details', async t => {
+  let status = 401;
+  t.mock.method(globalThis, 'fetch', async () => new Response('private-upstream-body', { status }));
+  const events = [];
+  const analytics = createHostedAnalytics('0.5.8', ENV, () => ({
+    on() {}, capture(event) { events.push(event); }, async shutdown() {},
+  }));
+  await withServer(analytics, async client => {
+    for (status of [401, 403, 404, 422, 429, 503]) {
+      const failure = await client.callTool({ name: 'get_state_lien_guide', arguments: { state: 'TX' } });
+      assert.equal(failure.isError, true);
+      assert.match(failure.content[0].text, new RegExp(`^LienDeadline API returned ${status}\\.`));
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  });
+  const calls = events.filter(event => event.event === '$mcp_tool_call');
+  assert.deepEqual(calls.map(event => event.properties.$mcp_error_type),
+    ['permission', 'permission', 'api_4xx', 'api_4xx', 'rate_limited', 'api_5xx']);
+  assert.doesNotMatch(JSON.stringify(events), /private|\$mcp_error_message|\$mcp_response|\$mcp_error_status/);
 });
 
 test('native SDK captures safe intent and preserves tool results and error reporting', async () => {

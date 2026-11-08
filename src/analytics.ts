@@ -14,7 +14,31 @@ const TOOL_INTENTS = new Map([
   ["list_state_lien_guides", "Browse available lien guides"],
 ]);
 const SAFE_INTENTS = new Set(TOOL_INTENTS.values());
-const ERROR_TYPES = new Set(["validation", "tool", "handler", "timeout", "cancelled", "unknown"]);
+const ERROR_TYPES = new Set([
+  "validation", "tool", "handler", "timeout", "cancelled", "unknown",
+  "internal", "api_4xx", "api_5xx", "permission", "rate_limited", "missing_context",
+]);
+
+/** The pinned SDK labels isError results as Error. Classify only our known prefixes;
+ * never copy arbitrary exception names, messages, arguments or upstream bodies. */
+function errorCategory(raw: Record<string, unknown>): string {
+  if (typeof raw.$mcp_error_type === "string" && ERROR_TYPES.has(raw.$mcp_error_type)) {
+    return raw.$mcp_error_type;
+  }
+  const message = typeof raw.$mcp_error_message === "string" ? raw.$mcp_error_message : "";
+  if (message.startsWith("Set LIENDEADLINE_API_KEY to a dedicated customer key")
+      || message.startsWith("LIENDEADLINE_API_KEY must be a dedicated customer key")) return "permission";
+  if (message.startsWith("MCP error -32602: Input validation error:")
+      || /^Invalid (?:supplier request|supplier scope|supplier-events-v3 request|invoice request):/.test(message)) {
+    return "validation";
+  }
+  const status = /^LienDeadline API returned ([45]\d{2})\./.exec(message)?.[1];
+  if (status === "401" || status === "403") return "permission";
+  if (status === "429") return "rate_limited";
+  if (status?.startsWith("4")) return "api_4xx";
+  if (status?.startsWith("5")) return "api_5xx";
+  return "unknown";
+}
 
 function clientBucket(value: unknown): string {
   if (typeof value !== "string") return "unknown";
@@ -57,9 +81,7 @@ export function privacyFilter(environment: string, version: string): BeforeSendF
       if (typeof raw.$mcp_duration_ms === "number" && Number.isFinite(raw.$mcp_duration_ms)) {
         properties.$mcp_duration_ms = Math.max(0, raw.$mcp_duration_ms);
       }
-      if (typeof raw.$mcp_error_type === "string" && ERROR_TYPES.has(raw.$mcp_error_type)) {
-        properties.$mcp_error_type = raw.$mcp_error_type;
-      }
+      if (properties.$mcp_is_error) properties.$mcp_error_type = errorCategory(raw);
     }
     return {
       event: event.event,
