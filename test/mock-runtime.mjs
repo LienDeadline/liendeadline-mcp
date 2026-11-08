@@ -9,7 +9,7 @@ registerHooks({
 });
 const reviewed = name => ({ name, deadline: null, days_from_now: null, required: null, status: 'review_required', description: 'Synthetic review' });
 const dated = (name, deadline) => ({ name, deadline, days_from_now: 30, required: true, status: 'calculated', description: 'Synthetic baseline' });
-const supplierEcho = inputs => {
+export const supplierEcho = inputs => {
   const notice = inputs.state.toUpperCase() === 'FL' && inputs.florida_final_payment_status === 'no'
     ? dated('Notice to Owner', '2026-09-17') : reviewed('Notice to Owner');
   const lien = inputs.state.toUpperCase() === 'FL' && inputs.florida_termination_status === 'no'
