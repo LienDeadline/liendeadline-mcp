@@ -109,7 +109,7 @@ function exactJson(left: unknown, right: unknown): boolean {
   return Object.keys(left).length === Object.keys(right).length && Object.keys(left).every(k => Object.hasOwn(right, k) && exactJson(left[k], right[k]));
 }
 function identity(v: unknown): v is RulesIdentity {
-  return record(v) && ["state-rules-v1", "state-rules-v2"].includes(String(v.schema_version)) &&
+  return record(v) && typeof v.schema_version === "string" && ["state-rules-v1", "state-rules-v2"].includes(v.schema_version) &&
     typeof v.source_version === "string" && /^\d{4}-\d{2}-\d{2}\.[1-9]\d*$/.test(v.source_version) && digest(v.source_hash) &&
     typeof v.reviewed_commit === "string" && /^[0-9a-f]{40}$/.test(v.reviewed_commit) && text(v.supplier_engine_version) && digest(v.implementation_manifest_hash);
 }
@@ -292,7 +292,7 @@ export function isSupplierRequestV3(v: unknown): v is SupplierRequestV3 {
 }
 export function isSupplierDiscovery(v: unknown, scope: SupplierScopeV3): v is SupplierDiscovery {
   if (!record(v) || v.contract_version !== SUPPLIER_V3 || !exactJson(v.scope, { ...scope, state: scope.state.toUpperCase() }) ||
-    !["supported", "no_lien_right", "review_required"].includes(String(v.scope_status)) || !text(v.reason_code) || !text(v.description) ||
+    typeof v.scope_status !== "string" || !["supported", "no_lien_right", "review_required"].includes(v.scope_status) || !text(v.reason_code) || !text(v.description) ||
     !identity(v.rules_source) || !questionIdentity(v.questions_identity) || !citations(v.sources) ||
     !texts(v.exclusions) || !texts(v.warnings) || !Array.isArray(v.questions) || v.questions.length > 64) return false;
   if (Object.hasOwn(v, "recurring_notice_intake")) {
@@ -306,9 +306,9 @@ export function isSupplierDiscovery(v: unknown, scope: SupplierScopeV3): v is Su
   const previous = new Set<string>(), sources = new Set(v.sources.map(s => s.id));
   return v.questions.every(q => {
     if (!record(q) || !text(q.id) || !eventId(q.id) || previous.has(q.id) || !text(q.label) || !text(q.help) ||
-      !exactJson(q.answers, ["yes", "no", "unknown"]) || !["required_for_calculation_if_yes", "optional_review_only", "forbidden"].includes(String(q.date_policy)) ||
+      !exactJson(q.answers, ["yes", "no", "unknown"]) || typeof q.date_policy !== "string" || !["required_for_calculation_if_yes", "optional_review_only", "forbidden"].includes(q.date_policy) ||
       (q.id === "homestead" && q.date_policy !== "forbidden") || !record(q.applies_when) || !Array.isArray(q.applies_when.all) ||
-      !q.applies_when.all.every(p => record(p) && typeof p.event === "string" && previous.has(p.event) && ["yes", "no"].includes(String(p.answer))) ||
+      !q.applies_when.all.every(p => record(p) && typeof p.event === "string" && previous.has(p.event) && typeof p.answer === "string" && ["yes", "no"].includes(p.answer)) ||
       !texts(q.affects) || q.affects.length === 0 || !q.affects.every(a => ["preliminary_notice", "lien_filing", "eligibility"].includes(a)) ||
       !texts(q.source_ids) || q.source_ids.length === 0 || !q.source_ids.every(s => sources.has(s))) return false;
     previous.add(q.id); return true;
