@@ -225,6 +225,16 @@ and source. Each event has a new random identifier. Person profiles and GeoIP ar
 Tool parameters, results, model, session and conversation IDs, raw client metadata, headers and
 exception details are removed.
 
+Errored tool calls retain only a fixed `$mcp_error_type` category. The pinned SDK uses
+`Error` for returned tool failures, so the filter classifies known local message prefixes:
+missing/malformed customer keys and upstream 401/403 are `permission`, input validation is
+`validation`, upstream 429 is `rate_limited`, and other upstream 4xx/5xx responses are
+`api_4xx`/`api_5xx`. Already recognized SDK categories are preserved; unrecognized failures
+remain `unknown`. This is coarse classification, not a diagnosis of the specific cause.
+Messages are examined locally but never sent, and neither raw status fields nor additional
+caller data are retained. These labels do not change tool results or calculation policy,
+and cannot backfill categories omitted from previously collected events.
+
 The SDK advertises a `context` field with a short list of approved goals. Exact matches are
 recorded with `$mcp_intent_source = context_parameter`. If the field is omitted, blank, or
 outside the approved list, the event uses a goal based on the tool name with source `inferred`.
