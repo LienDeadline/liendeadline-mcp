@@ -112,8 +112,10 @@ const READ_ONLY = {
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const v3Scope = {
   state: z.string().regex(/^[A-Za-z]{2}$/).describe("Project jurisdiction: state or DC."),
-  project_type: z.enum(["commercial", "residential", "public"]),
-  hired_by: z.enum(["owner", "contractor", "subcontractor"]),
+  project_type: z.enum(["commercial", "residential", "public"])
+    .describe("Construction project type: private commercial, private residential, or public."),
+  hired_by: z.enum(["owner", "contractor", "subcontractor"])
+    .describe("Who ordered the materials from the supplier: the owner, a contractor, or a subcontractor."),
 };
 const digest = z.string().regex(/^[0-9a-f]{64}$/);
 

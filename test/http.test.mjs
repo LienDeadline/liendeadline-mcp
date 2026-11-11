@@ -93,6 +93,28 @@ test('hosted initialize and tools/list over HTTP return exactly the five public 
   });
 });
 
+test('hosted v3 scope schemas describe the supplier project and hiring facts', async t => {
+  await withHostedServer({}, async url => {
+    await withClient(url, async client => {
+      const { tools } = await client.listTools();
+      for (const name of ['get_supplier_questions', 'calculate_supplier_deadlines_v3']) {
+        const schema = tools.find(tool => tool.name === name).inputSchema;
+        for (const [field, values, meaning] of [
+          ['project_type', ['commercial', 'residential', 'public'], /private commercial.*private residential.*public/i],
+          ['hired_by', ['owner', 'contractor', 'subcontractor'], /who ordered.*materials.*supplier/i],
+        ]) {
+          await t.test(`${name}.${field}`, () => {
+            assert.match(schema.properties[field].description, meaning);
+            assert.equal(schema.properties[field].type, 'string');
+            assert.deepEqual(schema.properties[field].enum, values);
+            assert.ok(schema.required.includes(field));
+          });
+        }
+      }
+    });
+  });
+});
+
 test('enabled analytics preserves stateless HTTP tools when the collector is unavailable', async () => {
   await withHostedServer({
     POSTHOG_ENABLED: 'true', POSTHOG_PROJECT_TOKEN: `phc_${'A'.repeat(24)}`,
