@@ -168,8 +168,9 @@ function readBody(req: IncomingMessage, limit: number): Promise<{ tooLarge: true
 /** One stateless MCP exchange: a fresh server and transport with caller-scoped credentials for this request alone. */
 async function handleMcp(req: IncomingMessage, res: ServerResponse, message: unknown) {
   const auth = req.headers.authorization;
-  const customerApiKey = typeof auth === "string" && /^Bearer ld_live_[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/.test(auth)
-    ? auth.slice(7) : undefined;
+  const bearerToken = typeof auth === "string" ? /^Bearer +(.+)$/i.exec(auth)?.[1] : undefined;
+  const customerApiKey = bearerToken && /^ld_live_[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/.test(bearerToken)
+    ? bearerToken : undefined;
   const server = buildServer({ includeCustomerTools: false, baseUrl: BASE_URL, customerApiKey });
   analytics?.instrument(server);
   if (analytics) {

@@ -180,6 +180,42 @@ test('hosted mode never sends Authorization upstream, even with a customer key i
   });
 });
 
+for (const prefix of ['Bearer ', 'bearer ', 'bEaReR ', 'Bearer   ']) {
+  test(`hosted supplier calls accept the HTTP authentication scheme ${JSON.stringify(prefix)}`, async () => {
+    const callerKey = `ld_live_${'a'.repeat(32)}.${'AbZ_-9'.repeat(7)}Q`;
+    await withHostedServer({ MCP_TEST_FORBID_AUTHORIZATION: '0', MCP_TEST_EXPECTED_KEY: callerKey }, async (url, logs, errors) => {
+      const response = await post(url, JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'tools/call',
+        params: { name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS },
+      }), { Authorization: `${prefix}${callerKey}` });
+      assert.equal(response.status, 200);
+      const { result } = await response.json();
+      assert.notEqual(result.isError, true, text(result));
+      assert.equal(JSON.parse(text(result)).lien_filing.deadline, '2026-12-09');
+      assert.equal((logs() + errors() + text(result)).includes(callerKey), false);
+    });
+  });
+}
+
+test('hosted authentication scheme matching does not relax the customer key format', async () => {
+  await withHostedServer({ MCP_TEST_FORBID_AUTHORIZATION: '0' }, async url => {
+    for (const authorization of [
+      `Basic ${KEY}`, `BearerX ${KEY}`, `Bearer${KEY}`, `Bearer\t${KEY}`,
+      `bearer ${KEY.replace('ld_live_', 'LD_LIVE_')}`, `Bearer ${KEY} extra`,
+      `bearer ld_live_${'A'.repeat(32)}.${'A'.repeat(43)}`,
+    ]) {
+      const response = await post(url, JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'tools/call',
+        params: { name: 'calculate_supplier_deadlines', arguments: SUPPLIER_ARGS },
+      }), { Authorization: authorization });
+      assert.equal(response.status, 200);
+      const { result } = await response.json();
+      assert.equal(result.isError, true);
+      assert.match(text(result), /Set LIENDEADLINE_API_KEY/);
+    }
+  });
+});
+
 test('hosted caller credentials cannot leak into another exchange or public guides', async () => {
   const callerKey = `ld_live_${'1'.repeat(32)}.${'B'.repeat(43)}`;
   await withHostedServer({ MCP_TEST_FORBID_AUTHORIZATION: '0', MCP_TEST_EXPECTED_KEY: callerKey }, async (url, logs, errors) => {
