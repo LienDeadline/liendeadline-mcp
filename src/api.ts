@@ -266,8 +266,9 @@ function isSupplierDeadline(value: unknown): value is SupplierDeadline {
   const d = value as Partial<SupplierDeadline>;
   const undated = d.status === "not_required" || d.status === "review_required" ||
     d.status === "awaiting_final_delivery";
+  const expectedRequired = d.status === "review_required" ? null : d.status !== "not_required";
   return typeof d.name === "string" && typeof d.description === "string" &&
-    (d.required === null || typeof d.required === "boolean") &&
+    d.required === expectedRequired &&
     (d.source_url === undefined || (typeof d.source_url === "string" && /^https?:\/\//.test(d.source_url))) &&
     (d.status === "calculated"
       ? isCivilDate(d.deadline) && Number.isFinite(d.days_from_now)
