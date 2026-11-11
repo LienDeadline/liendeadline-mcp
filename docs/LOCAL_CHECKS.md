@@ -13,6 +13,10 @@ bash scripts/check-local.sh
 `npm-shrinkwrap.json` owns the dependency tree. Do not substitute a pnpm install.
 The source gate builds, typechecks, runs the mocked HTTP/customer-key contract tests,
 and checks whitespace. It makes no live API calls and requires no credentials.
+The hosted caller-isolation regression holds two synthetic upstream requests open,
+finishes the second first, and checks that keys and returned project facts stay
+with their caller. Anonymous and public-guide calls run while the first request
+is still pending. IPC controls this ordering; no real API or customer key is used.
 `NODE_EXECUTABLE` and `NPM_EXECUTABLE` select the executables; Ops provides its locked
 Node runtime. A standalone runtime must satisfy `package.json`'s Node requirement.
 
