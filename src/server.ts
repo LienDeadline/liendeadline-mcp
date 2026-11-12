@@ -288,7 +288,7 @@ export function buildServer(options: ServerOptions): McpServer {
           "A date, day count or project_type the API does not return is null; missing warnings is " +
           "[] and missing notes is an empty string. API denials (401 key, 403 scope, 429 rate limit) " +
           "return a tool error. Successful calculations consume one API plan unit. Not legal advice.",
-        inputSchema: {
+        inputSchema: z.object({
           state: z
             .string()
             .length(2)
@@ -310,7 +310,7 @@ export function buildServer(options: ServerOptions): McpServer {
             .string()
             .optional()
             .describe('Your role on the project, e.g. "supplier", "contractor", "subcontractor".'),
-        },
+        }).strict(),
         annotations: { title: "Calculate invoice deadlines (customer API key)", ...READ_ONLY, readOnlyHint: false, idempotentHint: false },
       },
       async (args) => {

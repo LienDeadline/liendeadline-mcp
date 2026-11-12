@@ -51,7 +51,7 @@ unavailable for that request; it does not establish whether a state has been rel
 - **Dates.** Dates use `YYYY-MM-DD`. The supplier tools also require a real calendar date from
   1900 through 9998, so `2026-02-30` fails.
 - **Optional fields.** Leave out an optional field you don't have. `null` is not accepted.
-- **Undeclared fields.** `calculate_supplier_deadlines` and `calculate_supplier_deadlines_v3`
+- **Undeclared fields.** `calculate_supplier_deadlines`, `calculate_supplier_deadlines_v3`, and `calculate_lien_deadline`
   reject undeclared top-level arguments before an API request or calculation charge. Other
   tools drop undeclared top-level arguments before they run. The nested objects of
   `calculate_supplier_deadlines_v3` are strict: an undeclared field inside them fails validation.
@@ -532,6 +532,9 @@ doesn't add states to the supplier calculation.
 
 Calculates the preliminary notice and lien filing deadlines for one construction invoice from its
 invoice or delivery date and state. The key needs the `deadline:calculate` scope.
+
+Only the arguments listed below are accepted. An undeclared or misspelled argument returns a
+validation error before any API request or calculation allowance is used; it is not silently removed.
 
 | Name | Type | Required | Allowed values and meaning |
 | --- | --- | --- | --- |
