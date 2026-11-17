@@ -50,16 +50,23 @@ To run the local stdio server from a build, point an MCP client at `node dist/in
 LIENDEADLINE_RUN_LIVE_SMOKE=1 npm run smoke
 ```
 
-It runs the public tools, and runs the customer tools only when `LIENDEADLINE_API_KEY` is also
-set. Don't use a real customer key for routine local checks or unapproved live checks.
+Without a key, it reads the Texas guide and checks that an invalid supplier state is rejected.
+In local stdio mode, setting `LIENDEADLINE_API_KEY` also exercises the legacy v2 supplier
+calculation, invoice calculation and supported-state listing. Don't use a real customer key
+for routine local checks or unapproved live checks.
 
 With `LIENDEADLINE_MCP_URL` set, the smoke checks that Streamable HTTP endpoint instead of
-starting the stdio server, and requires exactly the five public tools.
+starting the stdio server, and requires exactly the five guide/supplier tool names. Hosted
+smoke deliberately sends no customer key and skips successful supplier calculations.
+The smoke does not exercise v3 discovery, v3 calculation or the public guide listing;
+passing it is not evidence that those operations or authenticated hosted calculations work.
 
 ### Hosted server
 
-`npm run start:http` runs the Streamable HTTP server (`POST /mcp`), which serves only the public
-tools. [docs/HOSTED.md](docs/HOSTED.md) covers its limits, logging, analytics and deployment.
+`npm run start:http` runs the Streamable HTTP server (`POST /mcp`) with five guide/supplier
+tools. Guides need no key; supplier discovery and calculations require the caller's dedicated
+customer key on each request. The invoice calculation and supported-state listing are local-only.
+[docs/HOSTED.md](docs/HOSTED.md) covers its limits, logging, analytics and deployment.
 
 ## Project layout
 
