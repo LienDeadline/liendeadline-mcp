@@ -13,6 +13,9 @@ bash scripts/check-local.sh
 `npm-shrinkwrap.json` owns the dependency tree. Do not substitute a pnpm install.
 The source gate builds, typechecks, runs the mocked HTTP/customer-key contract tests,
 and checks whitespace. It makes no live API calls and requires no credentials.
+The smoke cleanup regressions run the actual smoke orchestration against SDK doubles,
+not the live API. They verify client closure after connection, discovery, tool and
+response failures, while preserving the original failure if cleanup also fails.
 The hosted caller-isolation regression holds two synthetic upstream requests open,
 finishes the second first, and checks that keys and returned project facts stay
 with their caller. Anonymous and public-guide calls run while the first request
