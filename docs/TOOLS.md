@@ -614,7 +614,7 @@ network error details or the customer key.
 | 400, 422 | Depends on the tool. `calculate_supplier_deadlines`: check the fields against the `supplier-events-v2` schema. `get_supplier_questions`: check the project scope. `calculate_supplier_deadlines_v3`: check the discovered event fields and their date policies. `get_state_lien_guide` and `list_state_lien_guides`: check that `state` is a two-letter US state or DC code. `calculate_lien_deadline` and `list_supported_states`: check the state code and the date format. |
 | 401 | Check that the customer key is active and unexpired. Replace a revoked or rotated key. |
 | 403 | The customer key needs permission for this endpoint and its account. |
-| 404 | No guide exists for that state code. |
+| 404 | `get_state_lien_guide`: no guide exists for that state code. Other tools: the requested API resource was not found; this does not establish missing state-guide coverage. |
 | 409 | Supplier rules changed. Discover the questions again and reconfirm the facts. Don't reuse stale identities. |
 | 429 | The API rate limit was reached. Retry later. |
 | 503 | The service or reviewed source is unavailable and no deadline was calculated. This does not establish statewide release status. |
