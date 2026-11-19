@@ -26,74 +26,80 @@ const transport = hostedUrl
     },
   });
 const client = new Client({ name: "smoke", version: "0.0.0" });
-await client.connect(transport);
+try {
+  await client.connect(transport);
 
-const { tools } = await client.listTools();
-console.log(`tools: ${tools.length}`);
-for (const t of tools) console.log(`  - ${t.name}: ${t.title ?? ""}`);
-if (hostedUrl) {
-  const names = tools.map((t) => t.name).sort().join(", ");
-  if (names !== "calculate_supplier_deadlines, calculate_supplier_deadlines_v3, get_state_lien_guide, get_supplier_questions, list_state_lien_guides") {
-    throw new Error(`The hosted endpoint must serve exactly the five public tools; it lists: ${names}.`);
+  const { tools } = await client.listTools();
+  console.log(`tools: ${tools.length}`);
+  for (const t of tools) console.log(`  - ${t.name}: ${t.title ?? ""}`);
+  if (hostedUrl) {
+    const names = tools.map((t) => t.name).sort().join(", ");
+    if (names !== "calculate_supplier_deadlines, calculate_supplier_deadlines_v3, get_state_lien_guide, get_supplier_questions, list_state_lien_guides") {
+      throw new Error(`The hosted endpoint must serve exactly the five public tools; it lists: ${names}.`);
+    }
   }
-}
 
-const text = (r: unknown) => {
-  if ((r as { isError?: boolean }).isError) {
-    throw new Error("Live smoke tool failed. Check API availability and, for customer tools, customer-key scope/status; response details omitted.");
-  }
-  return ((r as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? "").join("");
-};
+  const text = (r: unknown) => {
+    if ((r as { isError?: boolean }).isError) {
+      throw new Error("Live smoke tool failed. Check API availability and, for customer tools, customer-key scope/status; response details omitted.");
+    }
+    return ((r as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? "").join("");
+  };
 
-if (customerKey) {
-console.log("\ncalculate_supplier_deadlines FL, deliveries complete, explicit no event answers:");
-const supplier = JSON.parse(text(await client.callTool({
-  name: "calculate_supplier_deadlines",
-  arguments: {
-    state: "FL", first_delivery_date: "2026-08-03", last_delivery_date: "2026-09-10",
-    project_type: "commercial", hired_by: "subcontractor", deliveries_complete: true,
-    florida_final_payment_status: "no", florida_termination_status: "no",
-  },
-})));
-console.log(`  status=${supplier.status} notice=${supplier.preliminary_notice?.deadline} lien=${supplier.lien_filing?.deadline}`);
+  if (customerKey) {
+    console.log("\ncalculate_supplier_deadlines FL, deliveries complete, explicit no event answers:");
+    const supplier = JSON.parse(text(await client.callTool({
+      name: "calculate_supplier_deadlines",
+      arguments: {
+        state: "FL", first_delivery_date: "2026-08-03", last_delivery_date: "2026-09-10",
+        project_type: "commercial", hired_by: "subcontractor", deliveries_complete: true,
+        florida_final_payment_status: "no", florida_termination_status: "no",
+      },
+    })));
+    console.log(`  status=${supplier.status} notice=${supplier.preliminary_notice?.deadline} lien=${supplier.lien_filing?.deadline}`);
 
-} else { console.log("Supplier calculation skipped: a caller customer key is required."); }
+  } else { console.log("Supplier calculation skipped: a caller customer key is required."); }
 
-console.log("\nget_state_lien_guide TX (size check):");
-const guide = text(await client.callTool({ name: "get_state_lien_guide", arguments: { state: "TX" } }));
-console.log(`  ${guide.length} chars returned (raw API guide is ~16000)`);
-const parsed = JSON.parse(guide);
-console.log(`  statute in rules: ${JSON.stringify(parsed.rules?.preliminary_notice?.statute)}`);
-console.log(`  source_url: ${parsed.source_url}`);
+  console.log("\nget_state_lien_guide TX (size check):");
+  const guide = text(await client.callTool({ name: "get_state_lien_guide", arguments: { state: "TX" } }));
+  console.log(`  ${guide.length} chars returned (raw API guide is ~16000)`);
+  const parsed = JSON.parse(guide);
+  console.log(`  statute in rules: ${JSON.stringify(parsed.rules?.preliminary_notice?.statute)}`);
+  console.log(`  source_url: ${parsed.source_url}`);
 
-console.log("\nerror path, bad state code:");
-const badSupplier = await client.callTool({
-  name: "calculate_supplier_deadlines",
-  arguments: { state: "ZZ", first_delivery_date: "2026-08-03", project_type: "commercial", hired_by: "owner", deliveries_complete: false },
-});
-if (!(badSupplier as { isError?: boolean }).isError) throw new Error("Expected unsupported state to return an MCP error.");
-console.log("  isError=true (response details omitted)");
-
-if (customerKey) {
-  console.log("\ncalculate_lien_deadline TX 2026-07-01 Commercial:");
-  const calc = await client.callTool({
-    name: "calculate_lien_deadline",
-    arguments: { state: "TX", invoice_date: "2026-07-01", project_type: "Commercial" },
+  console.log("\nerror path, bad state code:");
+  const badSupplier = await client.callTool({
+    name: "calculate_supplier_deadlines",
+    arguments: { state: "ZZ", first_delivery_date: "2026-08-03", project_type: "commercial", hired_by: "owner", deliveries_complete: false },
   });
-  console.log(text(calc));
-
-  console.log("\nlist_supported_states:");
-  const states = JSON.parse(text(await client.callTool({ name: "list_supported_states", arguments: {} })));
-  console.log(`  count=${states.count} first=${states.states.slice(0, 5).join(",")}`);
-
-  console.log("\ncustomer error path, bad state code:");
-  const bad = await client.callTool({ name: "calculate_lien_deadline", arguments: { state: "ZZ", invoice_date: "2026-07-01" } });
-  if (!(bad as { isError?: boolean }).isError) throw new Error("Expected unsupported state to return an MCP error.");
+  if (!(badSupplier as { isError?: boolean }).isError) throw new Error("Expected unsupported state to return an MCP error.");
   console.log("  isError=true (response details omitted)");
-} else {
-  console.log(hostedUrl
-    ? "\ncustomer tools skipped: the hosted endpoint serves only the public tools"
-    : "\ncustomer tools skipped: LIENDEADLINE_API_KEY not set");
+
+  if (customerKey) {
+    console.log("\ncalculate_lien_deadline TX 2026-07-01 Commercial:");
+    const calc = await client.callTool({
+      name: "calculate_lien_deadline",
+      arguments: { state: "TX", invoice_date: "2026-07-01", project_type: "Commercial" },
+    });
+    console.log(text(calc));
+
+    console.log("\nlist_supported_states:");
+    const states = JSON.parse(text(await client.callTool({ name: "list_supported_states", arguments: {} })));
+    console.log(`  count=${states.count} first=${states.states.slice(0, 5).join(",")}`);
+
+    console.log("\ncustomer error path, bad state code:");
+    const bad = await client.callTool({ name: "calculate_lien_deadline", arguments: { state: "ZZ", invoice_date: "2026-07-01" } });
+    if (!(bad as { isError?: boolean }).isError) throw new Error("Expected unsupported state to return an MCP error.");
+    console.log("  isError=true (response details omitted)");
+  } else {
+    console.log(hostedUrl
+      ? "\ncustomer tools skipped: the hosted endpoint serves only the public tools"
+      : "\ncustomer tools skipped: LIENDEADLINE_API_KEY not set");
+  }
+} catch (error) {
+  // Release the transport without replacing the failed check with a cleanup error.
+  await client.close().catch(() => {});
+  throw error;
 }
 
 await client.close();

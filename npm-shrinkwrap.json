@@ -1,17 +1,17 @@
 {
   "name": "liendeadline-mcp",
-  "version": "0.5.10",
+  "version": "0.5.11",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "liendeadline-mcp",
-      "version": "0.5.10",
+      "version": "0.5.11",
       "license": "MIT",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.0",
-        "@posthog/mcp": "1.1.1",
-        "posthog-node": "5.69.0",
+        "@posthog/mcp": "1.2.2",
+        "posthog-node": "5.74.0",
         "zod": "^4.6.5"
       },
       "bin": {
@@ -78,21 +78,21 @@
       }
     },
     "node_modules/@posthog/core": {
-      "version": "1.67.1",
-      "resolved": "https://registry.npmjs.org/@posthog/core/-/core-1.67.1.tgz",
-      "integrity": "sha512-Fq8YySx3G2ggxKV/dLf5nfbQocB3/yU6TNSGIyRvVynizrIW8tZfB2HQ/13cY61PoU+cNzvKch+B7Ac+OUkORw==",
+      "version": "1.68.0",
+      "resolved": "https://registry.npmjs.org/@posthog/core/-/core-1.68.0.tgz",
+      "integrity": "sha512-5kjPcLquzj47qBGn52+7RRXrJJvrTHaRKgxV9izYPFzoVFEftFqSXYZF/ug+yialxDU73dR9apyi+mSaAeaXPw==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/types": "^1.423.0"
+        "@posthog/types": "^1.425.1"
       }
     },
     "node_modules/@posthog/mcp": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/@posthog/mcp/-/mcp-1.1.1.tgz",
-      "integrity": "sha512-INQbej2ljzY9p+tstxbD8Mo/0IocpyjJM99Sc0EbGvF9KlFuYYg5OfRvyUpDBu18MADaWMUjP0QIy8jRqEPwAA==",
+      "version": "1.2.2",
+      "resolved": "https://registry.npmjs.org/@posthog/mcp/-/mcp-1.2.2.tgz",
+      "integrity": "sha512-rO8KP8ZvknCWudkvdPMedJ5aZA1v0D06zjMHJXuLQ8g0doNngEYJ2l8ffNOPyQ+rOTli0Q2PlFXYRim5arzRtg==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/core": "^1.67.1"
+        "@posthog/core": "^1.67.3"
       },
       "engines": {
         "node": "^20.20.0 || >=22.22.0"
@@ -112,9 +112,9 @@
       }
     },
     "node_modules/@posthog/types": {
-      "version": "1.424.0",
-      "resolved": "https://registry.npmjs.org/@posthog/types/-/types-1.424.0.tgz",
-      "integrity": "sha512-58RE0+Lt4vMLYmty2MlyAyfxFJvlM3Fp0tgRT25Klky7FSQvpznX+W9xKyVESB5oIAEJDxfHKX0cwEBHROZKqw==",
+      "version": "1.425.1",
+      "resolved": "https://registry.npmjs.org/@posthog/types/-/types-1.425.1.tgz",
+      "integrity": "sha512-mh7jyQ5lN+XCeOnMdYkBEFtO/G0TxeLOKTWNH6E6OZjxS4nVM0Tb2xQt+FG5DCFM9qzL2HmuX6A793TwlJVDvw==",
       "license": "MIT"
     },
     "node_modules/@types/node": {
@@ -1261,12 +1261,12 @@
       }
     },
     "node_modules/posthog-node": {
-      "version": "5.69.0",
-      "resolved": "https://registry.npmjs.org/posthog-node/-/posthog-node-5.69.0.tgz",
-      "integrity": "sha512-sNTR0Ld3WfgXvdOtKw2K6f44MADcDED+35wId+ZJlk3qUt8CoKKBT4uP4jWMPuC9knCc9HWURXexJVY+/gat4g==",
+      "version": "5.74.0",
+      "resolved": "https://registry.npmjs.org/posthog-node/-/posthog-node-5.74.0.tgz",
+      "integrity": "sha512-lAnGzPVobruQ7rZe45kzcXKZAcCK3J+1dMNS3WOOdx9mnM4ECRc2WRxBdS1ncBO/h/vDtHIEmcuIr/LUxxze5w==",
       "license": "MIT",
       "dependencies": {
-        "@posthog/core": "^1.67.1"
+        "@posthog/core": "^1.68.0"
       },
       "engines": {
         "node": "^20.20.0 || >=22.22.0"
