@@ -1,0 +1,134 @@
+---
+# Publishes server.json of an existing, already released v<version> tag to the
+# official MCP Registry. Run it by hand on the public repository after npm serves
+# that version (RELEASING.md, section 6). The Registry's github-oidc login proves
+# the io.github.LienDeadline namespace from this repository's Actions identity:
+# no secret or token is stored. Registry versions are immutable, so a version that
+# is already listed ends the run successfully without publishing.
+name: Publish MCP Registry listing
+
+"on":
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, for example v0.5.11
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-registry-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'LienDeadline/liendeadline-mcp'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      MCP_NAME: io.github.LienDeadline/liendeadline-mcp
+      MCP_PUBLISHER_VERSION: v1.8.1
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - name: Validate the tag input
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The tag must be a stable release tag of the form vMAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          echo "RELEASE_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          persist-credentials: false
+      - name: Check the checkout is the tag and server.json matches it
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          jq -e --arg name "$MCP_NAME" --arg version "$RELEASE_VERSION" '
+            .name == $name and .version == $version and
+            ([.packages[] | select(.registryType == "npm")] | length == 1) and
+            all(.packages[]; .version == $version)' server.json > /dev/null || {
+            echo "::error::server.json name, version or package version does not match ${RELEASE_TAG}." >&2
+            exit 1
+          }
+          echo "Checked out ${RELEASE_TAG} at $(git rev-parse HEAD); server.json is ${RELEASE_VERSION}."
+      - name: Require npm to serve the exact version
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://registry.npmjs.org/liendeadline-mcp/${RELEASE_VERSION}"
+          curl --fail --silent --show-error --max-time 30 "$url" > "$RUNNER_TEMP/npm.json" || {
+            echo "::error::npm does not serve liendeadline-mcp@${RELEASE_VERSION}; publish npm first." >&2
+            exit 1
+          }
+          jq -e --arg name "$MCP_NAME" --arg version "$RELEASE_VERSION" \
+            '.version == $version and .mcpName == $name' "$RUNNER_TEMP/npm.json" > /dev/null || {
+            echo "::error::npm liendeadline-mcp@${RELEASE_VERSION} has an unexpected version or mcpName." >&2
+            exit 1
+          }
+          echo "npm serves liendeadline-mcp@${RELEASE_VERSION} with mcpName ${MCP_NAME}."
+      - name: Stop if the Registry already lists the version
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.LienDeadline%2Fliendeadline-mcp/versions/${RELEASE_VERSION}"
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "$url")
+          case "$status" in
+            200)
+              echo "The Registry already lists ${RELEASE_VERSION}; versions are immutable, nothing to publish."
+              echo "listed=true" >> "$GITHUB_OUTPUT" ;;
+            404)
+              echo "The Registry does not list ${RELEASE_VERSION} yet."
+              echo "listed=false" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Registry lookup failed: HTTP ${status}." >&2
+              exit 1 ;;
+          esac
+      - name: Download and verify the pinned mcp-publisher
+        if: steps.registry.outputs.listed == 'false'
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          base="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --silent --show-error --location --max-time 120 \
+            --output mcp-publisher.tar.gz "${base}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum --check --strict
+          mkdir mcp-publisher-bin
+          tar -xzf mcp-publisher.tar.gz -C mcp-publisher-bin mcp-publisher
+          echo "MCP_PUBLISHER=$RUNNER_TEMP/mcp-publisher-bin/mcp-publisher" >> "$GITHUB_ENV"
+      - name: Log in with the Actions OIDC identity and publish
+        if: steps.registry.outputs.listed == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$MCP_PUBLISHER" login github-oidc
+          "$MCP_PUBLISHER" publish server.json
+      - name: Verify the Registry lists the version
+        if: steps.registry.outputs.listed == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.LienDeadline%2Fliendeadline-mcp/versions/${RELEASE_VERSION}"
+          for attempt in 1 2 3 4 5 6; do
+            status=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "$url")
+            if [ "$status" = "200" ]; then
+              echo "The Registry lists ${MCP_NAME} ${RELEASE_VERSION}."
+              exit 0
+            fi
+            echo "Attempt ${attempt}: HTTP ${status}."
+            sleep 10
+          done
+          echo "::error::The Registry does not list ${RELEASE_VERSION} after publishing." >&2
+          exit 1
