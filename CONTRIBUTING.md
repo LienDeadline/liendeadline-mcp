@@ -19,8 +19,7 @@ request or log.
 
 ## Develop locally
 
-Use a Node.js runtime satisfying `package.json` (22.22 or newer). The shared
-[Ops local runner](../liendeadline-ops/docs/local-ci.md) supplies the locked runtime.
+Use a Node.js runtime satisfying `package.json` (22.22 or newer).
 
 ```bash
 npm ci --ignore-scripts
@@ -28,8 +27,8 @@ bash scripts/check-local.sh
 ```
 
 Tests use synthetic credentials and mocked HTTP. They don't call the LienDeadline API or need
-secrets. GitHub Actions and their schedules are removed; source checks run locally.
-[Local check coverage](docs/LOCAL_CHECKS.md) maps every former job to its replacement.
+secrets. The checks run locally; there is no scheduled or hosted pull request check in this
+repository. The only workflow here is the release workflow described under [Releases](#releases).
 
 The test preloads resolve source-relative JavaScript imports to TypeScript and replace every
 upstream request. Fixture dates and statuses are supplied contract examples, not MCP statute
@@ -66,7 +65,7 @@ passing it is not evidence that those operations or authenticated hosted calcula
 `npm run start:http` runs the Streamable HTTP server (`POST /mcp`) with five guide/supplier
 tools. Guides need no key; supplier discovery and calculations require the caller's dedicated
 customer key on each request. The invoice calculation and supported-state listing are local-only.
-[docs/HOSTED.md](docs/HOSTED.md) covers its limits, logging, analytics and deployment.
+[docs/HOSTED.md](docs/HOSTED.md) covers its limits, safety controls, logging and analytics.
 
 ## Project layout
 
@@ -85,17 +84,29 @@ customer key on each request. The invoice calculation and supported-state listin
 
 ## Pull requests
 
+Issues and pull requests are welcome here. This repository is a release mirror: each release
+arrives as one snapshot commit from the maintainers' private source repository, through a
+`release/vX.Y.Z` pull request. A maintainer who accepts your pull request re-applies the change
+in that source, and it reaches this repository with the next release snapshot. Your pull request
+is then closed, not merged, with a note saying so.
+
 - Keep each change focused, and run `bash scripts/check-local.sh` before you push.
 - Tool titles, descriptions and schemas are what AI assistants read. Keep them accurate, and
   don't describe coverage that isn't live.
 - Every tool must stay read-only.
-- Don't change version numbers in a feature PR. Releases bump them together.
+- Don't change version numbers in a feature PR. The release process bumps them together.
 - Update [docs/TOOLS.md](docs/TOOLS.md) when a tool's inputs or outputs change.
 
 ## Releases
 
-Maintainers publish releases manually from an approved tagged `main` commit. [RELEASING.md](RELEASING.md) lists every file that
-carries the version, and the publishing steps for npm, the MCP Registry and the `.mcpb` bundles.
+Maintainers release from this repository. After a maintainer reviews and merges a release
+pull request, they create the stable `vX.Y.Z` tag on the merged `main` commit. That tag starts
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which publishes the exact
+packed tarball to npm through trusted publishing with provenance for that commit. Maintainers
+then publish the same version to the MCP Registry and attach the `.mcpb` bundles to the GitHub
+Release. Every file that carries the version is updated together:
+`package.json`, `npm-shrinkwrap.json`, `server.json`, `manifest.json`, `well-known/mcp.json` and
+`VERSION` in `src/api.ts`. `test/metadata.test.mjs` checks that they match.
 
 ## License
 
