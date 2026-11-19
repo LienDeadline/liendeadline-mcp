@@ -10,4 +10,4 @@ export PATH="$(dirname "$node_executable"):$PATH"
 "$npm_executable" run build
 "$npm_executable" run typecheck
 "$npm_executable" test
-git diff --check
+git diff --check -- .

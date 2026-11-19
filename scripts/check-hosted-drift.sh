@@ -13,9 +13,10 @@ MCP_URL="${MCP_URL:-https://mcp.liendeadline.com/mcp}"
 GRACE_MINUTES="${GRACE_MINUTES:-45}"
 RETRY_DELAY_SECONDS="${RETRY_DELAY_SECONDS:-30}"
 
-expected=$(git show "$expected_ref:package.json" | node -e 'let s=""; process.stdin.on("data", c=>s+=c).on("end", ()=>console.log(JSON.parse(s).version));')
+# "./" and "-- ." read this package directory, wherever it sits in the repository.
+expected=$(git show "$expected_ref:./package.json" | node -e 'let s=""; process.stdin.on("data", c=>s+=c).on("end", ()=>console.log(JSON.parse(s).version));')
 sha=$(git rev-parse "$expected_ref")
-committed=$(git log -1 --format=%ct "$expected_ref")
+committed=$(git log -1 --format=%ct "$expected_ref" -- .)
 age_minutes=$(( ($(date +%s) - committed) / 60 ))
 
 # One attempt: an MCP initialize POST, printing result.serverInfo.version.
