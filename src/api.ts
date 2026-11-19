@@ -9,7 +9,7 @@
 
 import { isSupplierDiscovery, isSupplierRequestV3, isSupplierResultV3, isSupplierScopeV3, type SupplierDiscovery, type SupplierRequestV3, type SupplierResultV3, type SupplierScopeV3 } from "./supplier-v3.ts";
 
-export const VERSION = "0.5.10"; // x-release-please-version
+export const VERSION = "0.5.11"; // x-release-please-version
 
 export const DEFAULT_BASE_URL = "https://secure-api-v1.liendeadline.com";
 
@@ -75,6 +75,7 @@ async function request<T>(
   path: string,
   init?: RequestInit,
   inputHint = INVOICE_INPUT_HINT,
+  notFoundHint = " The requested API resource was not found.",
 ): Promise<T> {
   const url = new URL(path, apiBase(baseUrl));
   let res: Response;
@@ -115,7 +116,7 @@ async function request<T>(
               : res.status === 400 || res.status === 422
                 ? inputHint
                 : res.status === 404
-                  ? " No guide exists for that state code."
+                  ? notFoundHint
                   : "";
     throw new LienDeadlineApiError(`LienDeadline API returned ${res.status}.${hint}`, res.status);
   }
@@ -447,6 +448,7 @@ export async function getStateGuide(baseUrl: string, stateCode: string): Promise
     `/api/v1/state-guides/${encodeURIComponent(code)}`,
     undefined,
     GUIDE_INPUT_HINT,
+    " No guide exists for that state code.",
   );
   const g = (raw.data ?? raw) as Record<string, unknown>;
   const slug = String(g.slug ?? code.toLowerCase());

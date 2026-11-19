@@ -21,9 +21,14 @@ const clientModule = `
 export class Client {
   async connect(transport) {
     if (!transport.isMockTransport) throw new Error('Expected mocked smoke transport');
+    if (process.env.MCP_TEST_SMOKE_FAILURE === 'connect') throw new Error('Synthetic connection failure');
   }
-  async listTools() { return { tools: Array.from({length: 4}, (_, i) => ({name: 'mock-tool-' + i})) }; }
+  async listTools() {
+    if (process.env.MCP_TEST_SMOKE_FAILURE === 'list') throw new Error('Synthetic discovery failure');
+    return { tools: Array.from({length: 4}, (_, i) => ({name: 'mock-tool-' + i})) }; }
   async callTool({name, arguments: args}) {
+    if (process.env.MCP_TEST_SMOKE_FAILURE === 'call') throw new Error('Synthetic tool failure');
+    if (process.env.MCP_TEST_SMOKE_FAILURE === 'json') return {content: [{text: 'not-json'}]};
     if (args.state === 'ZZ') return {isError: true, content: [{text: 'Unsupported state'}]};
     if (process.env.MCP_TEST_STATUS) return {isError: true, content: [{text: process.env.LIENDEADLINE_API_KEY}]};
     const body = name === 'calculate_supplier_deadlines'
@@ -33,12 +38,18 @@ export class Client {
       : {state: 'TX', invoice_date: '2026-07-01', lien_deadline: '2026-10-15'};
     return {content: [{text: JSON.stringify(body)}]};
   }
-  async close() {}
+  async close() {
+    await new Promise(resolve => setImmediate(resolve));
+    if (process.env.MCP_TEST_SMOKE_CLOSE) console.log('SMOKE_CLIENT_CLOSED');
+    if (process.env.MCP_TEST_SMOKE_CLOSE === 'fail') throw new Error('Synthetic close failure');
+  }
 }`;
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (context.parentURL?.endsWith('/src/smoke.ts')) {
-      const source = specifier === '@modelcontextprotocol/sdk/client/stdio.js' ? transportModule
+      const source = specifier === '@modelcontextprotocol/sdk/client/streamableHttp.js'
+        ? 'export class StreamableHTTPClientTransport { constructor() { this.isMockTransport = true; } }'
+        : specifier === '@modelcontextprotocol/sdk/client/stdio.js' ? transportModule
         : specifier === '@modelcontextprotocol/sdk/client/index.js' ? clientModule : null;
       if (source) return {url: 'data:text/javascript,' + encodeURIComponent(source), shortCircuit: true};
     }
